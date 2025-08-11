@@ -1,13 +1,15 @@
 // models/Participant.js
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const participantSchema = new mongoose.Schema({
   email: { type: String, required: true },
   token: { type: String },
   presence: { type: Boolean, default: false },
-  specialite: String,
-  num_de_tel: String,
+  specialite: { type: String },
+  num_de_tel: { type: String },
   session: { type: mongoose.Schema.Types.ObjectId, ref: 'Session' }
-})
+}, { timestamps: true })
 
-export default mongoose.model('Participant', participantSchema)
+const Participant = mongoose.model('Participant', participantSchema)
+
+module.exports = Participant

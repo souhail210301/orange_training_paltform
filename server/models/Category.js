@@ -1,9 +1,11 @@
 // models/Category.js
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const categorySchema = new mongoose.Schema({
-  name: String,
-  catalogue: { type: mongoose.Schema.Types.ObjectId, ref: 'Catalogue' }
-})
+  name: { type: String, required: true },
+  catalogue: { type: mongoose.Schema.Types.ObjectId, ref: 'Catalogue', required: true }
+}, { timestamps: true })
 
-export default mongoose.model('Category', categorySchema)
+const Category = mongoose.model('Category', categorySchema)
+
+module.exports = Category

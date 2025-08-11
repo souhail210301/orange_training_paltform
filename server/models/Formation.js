@@ -1,14 +1,18 @@
 // models/Formation.js
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const formationSchema = new mongoose.Schema({
+  code: { type: String },
   title: { type: String, required: true },
-  objectives: String,
-  prerequisites: String,
-  course_languages: [String],
-  support_languages: [String],
-  technologies: [String],
+  syllabus_url: { type: String },
+  objectives: { type: String },
+  prerequisites: { type: String },
+  course_languages: [{ type: String }],
+  support_languages: [{ type: String }],
+  technologies: [{ type: String }],
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
-})
+}, { timestamps: true })
 
-export default mongoose.model('Formation', formationSchema)
+const Formation = mongoose.model('Formation', formationSchema)
+
+module.exports = Formation
