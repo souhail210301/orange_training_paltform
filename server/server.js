@@ -7,6 +7,9 @@ const formationRoutes = require('./routes/formationRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const catalogueRoutes = require('./routes/catalogueRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const universityRoutes = require('./routes/universityRoutes');
+const universityRepresentativeRoutes = require('./routes/universityRepresentativeRoutes');
+const trainingRequestRoutes = require('./routes/trainingRequestRoutes');
 
 
 // Load environment variables
@@ -32,6 +35,9 @@ app.use('/api/formations', formationRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/catalogues', catalogueRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/universities', universityRoutes);
+app.use('/api/university-reps', universityRepresentativeRoutes);
+app.use('/api/training-requests', trainingRequestRoutes);
 
 
 

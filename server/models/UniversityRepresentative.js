@@ -1,12 +1,12 @@
 // models/UniversityRepresentative.js
-import User from './User.js'
+const User = require('./User')
 const mongoose = require('mongoose')
 
 const universityRepSchema = new mongoose.Schema({
-  max_requests: Number,
-  university_name: String
-})
+  university: { type: mongoose.Schema.Types.ObjectId, ref: 'University', required: true },
+  max_requests: { type: Number, default: 3 }
+}, { timestamps: true })
 
 const UniversityRep = User.discriminator('university_representative', universityRepSchema)
 
-export default UniversityRep
+module.exports = UniversityRep

@@ -1,10 +1,11 @@
 const User = require('../models/User')
+const UniversityRepresentative = require('../models/UniversityRepresentative')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
 // Register User
 const registerUser = async (req, res) => {
-  const { name, email, password, phone_number, role } = req.body
+  const { name, email, password, phone_number, role, university } = req.body
 
   try {
     const userExists = await User.findOne({ email })
@@ -12,17 +13,32 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      phone_number,
-      role
-    })
+    // Special handling for university representatives
+    if (role === 'university_representative') {
+      if (!university) {
+        return res.status(400).json({ message: 'university is required for role university_representative' })
+      }
+      await UniversityRepresentative.create({
+        name,
+        email,
+        password: hashedPassword,
+        phone_number,
+        role,
+        university
+      })
+    } else {
+      await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        phone_number,
+        role
+      })
+    }
 
     res.status(201).json({ message: 'User registered successfully' })
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ message: 'Server error', error: error.message })
   }
 }
 
