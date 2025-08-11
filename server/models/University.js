@@ -1,9 +1,11 @@
 // models/University.js
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const universitySchema = new mongoose.Schema({
   id_university: { type: Number, unique: true },
   name: { type: String, required: true }
-})
+}, { timestamps: true })
 
-export default mongoose.model('University', universitySchema)
+const University = mongoose.model('University', universitySchema)
+
+module.exports = University
