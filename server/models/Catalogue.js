@@ -1,8 +1,10 @@
 // models/Catalogue.js
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const catalogueSchema = new mongoose.Schema({
-  name: String
-})
+  name: { type: String, required: true }
+}, { timestamps: true })
 
-export default mongoose.model('Catalogue', catalogueSchema)
+const Catalogue = mongoose.model('Catalogue', catalogueSchema)
+
+module.exports = Catalogue
