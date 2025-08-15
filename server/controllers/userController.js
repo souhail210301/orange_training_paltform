@@ -27,13 +27,15 @@ const registerUser = async (req, res) => {
         university
       })
     } else {
-      await User.create({
+      // Use new User() and .save() instead of User.create()
+      const newUser = new User({
         name,
         email,
         password: hashedPassword,
         phone_number,
         role
       })
+      await newUser.save()
     }
 
     res.status(201).json({ message: 'User registered successfully' })
@@ -102,6 +104,35 @@ const getUserByRole = async (req, res) => {
   }
 }
 
+// Update user profile
+const updateUser = async (req, res) => {
+  const { name, email, phone_number } = req.body;
+  try {
+    const user = await User.findById(req.user.id); // req.user.id comes from protect middleware
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only allow update of name, email, phone_number for simplicity
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.phone_number = phone_number || user.phone_number;
+
+    const updatedUser = await user.save();
+
+    res.json({
+      id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      phone_number: updatedUser.phone_number,
+      role: updatedUser.role,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Admin: Delete user
 const deleteUser = async (req, res) => {
   try {
@@ -118,5 +149,6 @@ module.exports = {
   getCurrentUser,
   getAllUsers,
   getUserByRole,
-  deleteUser
+  deleteUser,
+  updateUser
 }
