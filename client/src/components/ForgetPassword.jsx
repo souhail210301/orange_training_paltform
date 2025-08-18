@@ -1,40 +1,34 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 
-const LoginPage = ({ onLoginSuccess }) => {
+const ForgetPassword = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
+    setMessage('');
+    setError('');
 
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('/api/users/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Login successful!', data);
-        localStorage.setItem('token', data.token);
-        if (onLoginSuccess) {
-          onLoginSuccess(data.user.role); // Pass the user role to the success handler
-        }
-        setEmail('');
-        setPassword('');
+        setMessage(data.message || 'Password reset link sent to your email.');
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || 'Failed to send reset link.');
       }
     } catch (err) {
-      console.error('Error during login:', err);
-      setError('Network error or server unavailable');
+      console.error('Error during forgot password request:', err);
+      setError('Network error or server unavailable.');
     }
   };
 
@@ -47,9 +41,10 @@ const LoginPage = ({ onLoginSuccess }) => {
             <img src="/certif_logo.png" alt="Certif Logo" style={{ height: '100%', maxWidth: 'auto' }} />
           </div>
           <div className="login-content">
-            <h2 className="login-title">Connexion</h2>
-            <p className="login-subtitle">Connecter maintenant et accéder à votre Dashboard</p>
+            <h2 className="login-title">Mot de passe oublié</h2>
+            <p className="login-subtitle">Saisir l'adresse e-mail que vous utilisez et nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
             <form onSubmit={handleSubmit} className="login-form">
+              {message && <p className="success-message">{message}</p>}
               {error && <p className="error-message">{error}</p>}
               <div className="form-group">
                 <label htmlFor="email">Adresse email</label>
@@ -62,21 +57,10 @@ const LoginPage = ({ onLoginSuccess }) => {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="password">Mot de passe</label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Saisir votre mot de passe"
-                  required
-                />
-              </div>
-              <p className="forgot-password">
-                <Link to="/forgot-password">Mot de passe oublié?</Link>
+              <button type="submit" className="login-button">Réinitialiser le mot de passe</button>
+              <p className="return-to-login">
+                <a href="/">Retour à Connexion</a>
               </p>
-              <button type="submit" className="login-button">Connexion</button>
             </form>
           </div>
         </div>
@@ -93,4 +77,4 @@ const LoginPage = ({ onLoginSuccess }) => {
   );
 };
 
-export default LoginPage;
+export default ForgetPassword;

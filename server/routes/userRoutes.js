@@ -6,7 +6,10 @@ const {
   getAllUsers,
   getUserByRole,
   deleteUser,
-  updateUser
+  updateUser,
+  changePassword,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/userController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
@@ -14,7 +17,10 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
 router.get('/me', protect, getCurrentUser);
+router.put('/change-password', protect, changePassword); // New route for changing password
 router.put('/:id', protect, updateUser);
 
 // Admin-only routes

@@ -16,7 +16,7 @@
 }
 
 .login-right-panel {
-  flex: 0 0 40%;
+  flex: 0 0 41%;
   background-color: #e5e5e5;
 }
 
@@ -40,22 +40,24 @@
 }
 
 .login-title {
-  font-size: 32px;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 40px;
   font-weight: 700;
   color: #000;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+  margin-bottom: 5px;
+  letter-spacing: 0px;
 }
 
 .login-subtitle {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #666;
-  margin-bottom: 32px;
+  color: #000;
+  margin-bottom: 30px;
   line-height: 1.4;
 }
 
 .login-form .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .login-form label {
@@ -63,25 +65,37 @@
   font-size: 14px;
   font-weight: 500;
   color: #000;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .login-form input[type="email"],
 .login-form input[type="password"] {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
   box-sizing: border-box;
-  background-color: #ffffff;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  gap: 66px;
+  width: 475px;
+  height: 45px;
+  background: #FFFFFF;
+  border: 1px solid #A1A1AA;
+  border-radius: 4px;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+  font-size: 14px; /* Keep original font size */
   transition: border-color 0.2s ease;
 }
 
 .login-form input[type="email"]:focus,
 .login-form input[type="password"]:focus {
-  outline: none;
-  border-color: #9ca3af;
+  
+  border-color: #A1A1AA;
+  border: 1px;
 }
 
 .login-form input[type="email"]::placeholder,
@@ -97,9 +111,11 @@
 }
 
 .forgot-password a {
-  color: #6b7280;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: #F16E00;
   font-size: 13px;
   text-decoration: none;
+  font-weight: 500; 
 }
 
 .forgot-password a:hover {
@@ -108,20 +124,52 @@
 }
 
 .login-button {
-  width: 100%;
-  padding: 14px;
-  background-color: #d1d5db;
-  color: #000;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 8px;
+  width: 475px;
+  height: 45px;
+  background: #F16E00;
+  border-radius: 4px;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+  color: #fff; /* Assuming white text for contrast on orange background */
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  font-size: 16px; /* Adjust font size if needed for better fit */
+  font-weight: 600; /* Adjust font weight if needed */
 }
 
 .login-button:hover {
-  background-color: #9ca3af;
+  background-color: #e06200; /* Slightly darker orange on hover */
+}
+
+.return-to-login {
+  margin-top: 20px; /* Adjust margin as needed */
+}
+
+.return-to-login a {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 13px;
+  line-height: 120%;
+  letter-spacing: 0%;
+  color: #F16E00; /* Assuming the link color is orange based on the image */
+  text-decoration: none;
+  display: inline-block; /* To apply vertical-align effectively */
+  vertical-align: middle;
+
+}
+
+.return-to-login a:hover {
+  text-decoration: underline;
 }
 
 .error-message {
@@ -875,4 +923,5 @@
     padding: 10px 12px;
     font-size: 13px;
   }
+
 }
