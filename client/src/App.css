@@ -78,8 +78,8 @@
   align-items: center;
   padding: 16px;
   gap: 66px;
-  width: 475px;
-  height: 45px;
+  width:475px;
+  height: 47px;
   background: #FFFFFF;
   border: 1px solid #A1A1AA;
   border-radius: 4px;
@@ -102,6 +102,24 @@
 .login-form input[type="password"]::placeholder {
   color: #9ca3af;
   font-size: 14px;
+}
+
+.password-field {
+  position: relative; /* For absolute positioning of the icon */
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 16px; /* Adjust as needed */
+  cursor: pointer;
+  color: #A1A1AA; /* Match border color */
+  font-size: 18px; /* Adjust size of the eye icon */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.login-form input[type="password"] {
+  padding-right: 45px; /* Make space for the icon */
 }
 
 .forgot-password {
@@ -130,8 +148,8 @@
   align-items: center;
   padding: 16px 24px;
   gap: 8px;
-  width: 475px;
-  height: 45px;
+  width:475px;
+  height: 47px;
   background: #F16E00;
   border-radius: 4px;
   flex: none;

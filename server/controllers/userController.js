@@ -75,6 +75,26 @@ const loginUser = async (req, res) => {
   }
 }
 
+// Get user email by reset token
+const getEmailByResetToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token.' });
+    }
+
+    res.status(200).json({ email: user.email });
+  } catch (error) {
+    console.error('Error fetching email by reset token:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 // Forgot Password (send reset link)
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -253,5 +273,6 @@ module.exports = {
   updateUser,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getEmailByResetToken
 }

@@ -9,7 +9,8 @@ const {
   updateUser,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getEmailByResetToken
 } = require('../controllers/userController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/forgot-password', forgotPassword);
+router.get('/reset-password-email/:token', getEmailByResetToken); // New route to get email by token
 router.post('/reset-password/:token', resetPassword);
 router.get('/me', protect, getCurrentUser);
 router.put('/change-password', protect, changePassword); // New route for changing password
