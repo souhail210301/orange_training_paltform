@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UserProfile from './Admin/UserProfile'; // Import the UserProfile component
+import Navbar from './Navbar'; // Import the Navbar component
 
 const AdminDashboard = () => {
   const [activeContent, setActiveContent] = useState('profil'); // State to manage displayed content
@@ -56,24 +57,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard-container">
-      <header className="admin-header">
-        <div className="admin-logo">Logo</div>
-        <div className="admin-search">Search....</div>
-        <div className="admin-header-icons">
-          {/* Placeholder for icons */}
-          <div className="user-info" onClick={toggleDropdown}>
-            <img src="/docs/images/people/profile-picture-3.jpg" alt="User Avatar" className="user-avatar" />
-            <span>{user ? user.name : 'Chargement...'}</span>
-            {dropdownOpen && (
-              <div className="dropdown-menu">
-                <p>{user ? user.email : ''}</p>
-                <button>Paramètres</button>
-              </div>
-            )}
-          </div>
-
-        </div>
-      </header>
+      <Navbar /> {/* Render the Navbar component here */}
       <style jsx>{`
         .user-info {
           display: flex;

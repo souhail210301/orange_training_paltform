@@ -3,16 +3,7 @@ import React from 'react';
 const AdminDashboardLayout = ({ children }) => {
   return (
     <div className="admin-dashboard-layout">
-      <div className="admin-header">
-        <div className="admin-logo">Logo</div>
-        <div className="admin-search">
-          <input type="text" placeholder="Search...." />
-        </div>
-        <div className="admin-header-icons">
-          <div className="admin-icon"></div>
-          <div className="admin-icon"></div>
-        </div>
-      </div>
+      
       <div className="admin-main-content-wrapper">
         <div className="admin-sidebar">
           <ul>
