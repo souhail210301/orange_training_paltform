@@ -4,7 +4,9 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import './index.css'
 import App from './App.jsx'
 import ForgetPassword from './components/ForgetPassword.jsx';
-import ResetPasswordPage from './components/ResetPasswordPage.jsx';
+import ResetPasswordPage from './components/ResetPassword.jsx';
+import EmailSent from './components/EmailSent.jsx';
+
 
 const router = createBrowserRouter([
   {
@@ -18,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: "/reset-password/:token",
     element: <ResetPasswordPage />,
+  },
+  {
+    path: "/email-sent",
+    element: <EmailSent />,
   },
 ]);
 

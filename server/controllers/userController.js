@@ -111,8 +111,8 @@ const forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // Send email with reset link
-    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+  // Send email with reset link (frontend URL)
+  const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
     const transporter = nodemailer.createTransport({
       service: 'gmail', // You can use other services like SendGrid, Mailgun, etc.
@@ -144,13 +144,32 @@ const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
+    if (!token) {
+      console.error('Reset password error: No token provided.');
+      return res.status(400).json({ message: 'No reset token provided.' });
+    }
 
+    if (!password || password.length < 6) {
+      console.error('Reset password error: Password missing or too short.', { password });
+      return res.status(400).json({ message: 'Password is required and must be at least 6 characters.' });
+    }
+
+  const user = await User.findOne({ resetPasswordToken: token }).select('+password');
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token.' });
+      console.error('Reset password error: No user found for token.', { token });
+      return res.status(400).json({ message: 'Invalid reset token.' });
+    }
+
+    if (!user.resetPasswordExpire || user.resetPasswordExpire < Date.now()) {
+      console.error('Reset password error: Token expired.', { token, expire: user.resetPasswordExpire });
+      return res.status(400).json({ message: 'Reset token has expired.' });
+    }
+
+    // Optional: Prevent using the same password as before
+    const isSame = await bcrypt.compare(password, user.password);
+    if (isSame) {
+      console.error('Reset password error: New password is the same as the old password.');
+      return res.status(400).json({ message: 'New password must be different from the old password.' });
     }
 
     user.password = await bcrypt.hash(password, 10);
@@ -158,9 +177,10 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
+    console.log('Password reset successful for user:', user.email);
     res.status(200).json({ message: 'Password has been reset successfully.' });
   } catch (error) {
-    console.error('Reset password error:', error);
+    console.error('Reset password error:', error, { token, password });
     res.status(500).json({ message: 'Server error, could not reset password.' });
   }
 };
