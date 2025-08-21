@@ -10,8 +10,11 @@ const {
   changePassword,
   forgotPassword,
   resetPassword,
-  getEmailByResetToken
+  getEmailByResetToken,
+  getUserStats
 } = require('../controllers/userController');
+// Public stats endpoint for dashboard
+
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -24,6 +27,7 @@ router.post('/reset-password/:token', resetPassword);
 router.get('/me', protect, getCurrentUser);
 router.put('/change-password', protect, changePassword); // New route for changing password
 router.put('/:id', protect, updateUser);
+router.get('/stats', getUserStats);
 
 // Admin-only routes
 router.get('/', protect, adminOnly, getAllUsers);

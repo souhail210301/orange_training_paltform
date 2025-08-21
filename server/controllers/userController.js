@@ -1,3 +1,16 @@
+// Get user stats (total, by role)
+const getUserStats = async (req, res) => {
+  try {
+    const total = await User.countDocuments();
+    const admin = await User.countDocuments({ role: 'admin' });
+    const formateur = await User.countDocuments({ role: 'odc_mentor' });
+    const partenaire = await User.countDocuments({ role: 'prestataire' });
+    const representant = await User.countDocuments({ role: 'university_representative' });
+    res.json({ total, admin, formateur, partenaire, representant });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors du chargement des statistiques', error: error.message });
+  }
+};
 const User = require('../models/User')
 const UniversityRepresentative = require('../models/UniversityRepresentative')
 const bcrypt = require('bcryptjs')
@@ -246,18 +259,42 @@ const getUserByRole = async (req, res) => {
 
 // Update user profile
 const updateUser = async (req, res) => {
-  const { name, email, phone_number } = req.body;
   try {
-    const user = await User.findById(req.user.id); // req.user.id comes from protect middleware
-
+    const userId = req.params.id;
+    let user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Only allow update of name, email, phone_number for simplicity
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone_number = phone_number || user.phone_number;
+    // If changing to university_representative, use the discriminator model
+    let isBecomingRep = req.body.role === 'university_representative' && user.role !== 'university_representative';
+    let isRep = user.role === 'university_representative' || req.body.role === 'university_representative';
+    let repModel = require('../models/UniversityRepresentative');
+
+    // If user is or will be a university_representative, update university field
+    if (isRep && req.body.university !== undefined) {
+      // If not already a rep, switch model
+      if (isBecomingRep) {
+        // Remove old user, create new rep
+        await User.findByIdAndDelete(userId);
+        user = new repModel({
+          _id: userId,
+          name: req.body.name || user.name,
+          email: req.body.email || user.email,
+          phone_number: req.body.phone_number || user.phone_number,
+          role: 'university_representative',
+          university: req.body.university
+        });
+      } else {
+        user.university = req.body.university;
+      }
+    }
+
+    // Update other fields
+    if (req.body.name !== undefined) user.name = req.body.name;
+    if (req.body.email !== undefined) user.email = req.body.email;
+    if (req.body.phone_number !== undefined) user.phone_number = req.body.phone_number;
+    if (req.body.role !== undefined) user.role = req.body.role;
 
     const updatedUser = await user.save();
 
@@ -267,6 +304,7 @@ const updateUser = async (req, res) => {
       email: updatedUser.email,
       phone_number: updatedUser.phone_number,
       role: updatedUser.role,
+      university: updatedUser.university || undefined
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -294,5 +332,6 @@ module.exports = {
   changePassword,
   forgotPassword,
   resetPassword,
-  getEmailByResetToken
+  getEmailByResetToken,
+  getUserStats
 }
