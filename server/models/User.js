@@ -13,7 +13,10 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   created_at: { type: Date, default: Date.now },
-  last_login: { type: Date }
+    last_login: { type: Date },
+    // For password reset
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date }
 }, { discriminatorKey: 'role', timestamps: true })
 
 const User = mongoose.model('User', userSchema)

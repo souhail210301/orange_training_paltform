@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AddUser from './AddUser'; // Added import for AddUser
 import UserList from './UserList'; // Added import for UserList
+import PasswordChangeForm from './PasswordChangeForm'; // Added import for PasswordChangeForm
 
 const UserProfile = () => {
   const [editMode, setEditMode] = useState(false);
@@ -140,7 +141,12 @@ const UserProfile = () => {
           </div>
         );
       case 'password':
-        return <div className="profile-tab-content"><h2>Mot de Passe Section</h2></div>; // Placeholder
+        return (
+          <div className="profile-tab-content">
+            <h2>Changer le mot de passe</h2>
+            <PasswordChangeForm />
+          </div>
+        );
       case 'notifications':
         return <div className="profile-tab-content"><h2>Notifications Section</h2></div>; // Placeholder
       case 'settings':

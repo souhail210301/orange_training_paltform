@@ -1,142 +1,6 @@
-.login-page-container {
-  display: flex;
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-
-/* Left white panel */
-.login-left-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background-color: #ffffff;
-}
-
-.login-right-panel {
-  flex: 0 0 40%;
-  background-color: #e5e5e5;
-}
-
-.login-left-content-wrapper {
-  width: 100%;
-  max-width: 600px; /* Increased for wider desktop view */
-  padding: 0 40px;
-  box-sizing: border-box;
-  text-align: left;
-}
-
-.login-logo {
-  font-size: 18px;
-  font-weight: 600;
-  color: #000;
-  margin-bottom: 60px;
-}
-
-.login-content {
-  margin-top: 0;
-}
-
-.login-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #000;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
-}
-
-.login-subtitle {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 32px;
-  line-height: 1.4;
-}
-
-.login-form .form-group {
-  margin-bottom: 20px;
-}
-
-.login-form label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #000;
-  margin-bottom: 6px;
-}
-
-.login-form input[type="email"],
-.login-form input[type="password"] {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  box-sizing: border-box;
-  background-color: #ffffff;
-  transition: border-color 0.2s ease;
-}
-
-.login-form input[type="email"]:focus,
-.login-form input[type="password"]:focus {
-  outline: none;
-  border-color: #9ca3af;
-}
-
-.login-form input[type="email"]::placeholder,
-.login-form input[type="password"]::placeholder {
-  color: #9ca3af;
-  font-size: 14px;
-}
-
-.forgot-password {
-  text-align: left;
-  margin-top: 8px;
-  margin-bottom: 24px;
-}
-
-.forgot-password a {
-  color: #6b7280;
-  font-size: 13px;
-  text-decoration: none;
-}
-
-.forgot-password a:hover {
-  color: #374151;
-  text-decoration: underline;
-}
-
-.login-button {
-  width: 100%;
-  padding: 14px;
-  background-color: #d1d5db;
-  color: #000;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.login-button:hover {
-  background-color: #9ca3af;
-}
-
-.error-message {
-  color: #dc2626;
-  margin-bottom: 15px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.success-message {
-  color: #10b981;
-  margin-bottom: 15px;
-  text-align: center;
-  font-size: 14px;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .register-page-container {
   display: flex;
@@ -252,9 +116,9 @@
 }
 
 /* Admin Dashboard Styles */
-.admin-dashboard-container {
+.admin-dashboard-layout {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Changed to column to stack header and content */
   min-height: 100vh;
   background-color: #f0f2f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -264,42 +128,59 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 40px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 10px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.admin-logo {
-  font-size: 22px;
-  font-weight: bold;
-  color: #333;
-  margin-right: 40px;
+.admin-header .admin-search input {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  outline: none;
+  box-sizing: border-box;
 }
 
-.admin-search {
-  flex-grow: 1;
-  max-width: 600px;
-  margin: 0 30px;
-  padding: 12px 20px;
-  background-color: #f5f5f5;
-  border-radius: 25px;
-  color: #777;
+.admin-header .notification-icon {
+  position: relative;
+  cursor: pointer;
 }
 
-.admin-header-icons {
+.admin-header .notification-dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #F16E00;
+  color: white;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  font-size: 8px;
   display: flex;
-  gap: 20px;
-  margin-left: 40px;
+  justify-content: center;
+  align-items: center;
 }
 
-.admin-header-icons .icon {
-  width: 30px;
-  height: 30px;
-  background-color: #e0e0e0;
+.admin-header .user-avatar-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #F16E00;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.admin-header .user-avatar-container img {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
 }
 
-.admin-main-content {
+.admin-main-content-wrapper {
   display: flex;
   flex: 1;
 }
@@ -634,27 +515,6 @@
     margin-top: 20px;
   }
 
-  .admin-header {
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 10px 15px;
-  }
-
-  .admin-logo {
-    margin-bottom: 10px;
-  }
-
-  .admin-search {
-    flex-basis: 100%;
-    margin: 10px 0;
-  }
-
-  .admin-header-icons {
-    width: 100%;
-    justify-content: center;
-    margin-top: 10px;
-  }
-
   .admin-main-content {
     flex-direction: column;
   }
@@ -875,4 +735,5 @@
     padding: 10px 12px;
     font-size: 13px;
   }
+
 }
