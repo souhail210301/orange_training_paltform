@@ -31,7 +31,6 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const [users, setUsers] = useState([]);
   const [disableLoadingId, setDisableLoadingId] = useState(null);
   const [disableError, setDisableError] = useState('');
   const [showDisableModal, setShowDisableModal] = useState(false);
