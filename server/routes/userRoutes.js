@@ -34,4 +34,7 @@ router.get('/', protect, adminOnly, getAllUsers);
 router.get('/role/:role', protect, adminOnly, getUserByRole);
 router.delete('/:id', protect, adminOnly, deleteUser);
 
+// Disable/enable user
+router.patch('/:id/disable', protect, adminOnly, require('../controllers/userController').disableUser);
+
 module.exports = router;

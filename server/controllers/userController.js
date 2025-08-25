@@ -1,3 +1,18 @@
+// Disable or enable a user
+const disableUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (typeof req.body.disabled !== 'boolean') {
+      return res.status(400).json({ message: 'Missing or invalid disabled value' });
+    }
+    user.disabled = req.body.disabled;
+    await user.save();
+    res.json({ message: `User ${req.body.disabled ? 'disabled' : 'enabled'} successfully` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 // Get user stats (total, by role)
 const getUserStats = async (req, res) => {
   try {
@@ -333,5 +348,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getEmailByResetToken,
-  getUserStats
+  getUserStats,
+  disableUser
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import deleteLogo from '../../../public/delete_logo.png';
+import disableLogo from '../../../public/disable_logo.png';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
 
@@ -31,6 +32,10 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
   const [deleteError, setDeleteError] = useState('');
 
   const [users, setUsers] = useState([]);
+  const [disableLoadingId, setDisableLoadingId] = useState(null);
+  const [disableError, setDisableError] = useState('');
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [userToDisable, setUserToDisable] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -339,7 +344,6 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                               <button className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 gap-2"
                                 onClick={() => {
                                   setShowEditModal(true);
-                                  setOpenMenu(null);
                                   setEditForm({
                                     _id: u._id,
                                     name: u.name,
@@ -497,7 +501,6 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                                 onClick={() => {
                                   setShowDeleteModal(true);
                                   setUserToDelete(u);
-                                  setOpenMenu(null);
                                   setDeleteError('');
                                 }}
                               >
@@ -558,10 +561,73 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
           </div>
         </div>
       )}
-                              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 gap-2">
+                              <button
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 gap-2"
+                                onClick={() => {
+                                  setShowDisableModal(true);
+                                  setUserToDisable(u);
+                                  setDisableError('');
+                                }}
+                              >
                                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 12v3m0 3h.01M12 6v.01" strokeWidth="1.5" strokeLinecap="round"/><circle cx="12" cy="12" r="9" strokeWidth="1.5"/></svg>
-                                Désactiver
+                                {u.disabled ? 'Activer' : 'Désactiver'}
                               </button>
+      {/* Disable User Modal */}
+      {showDisableModal && userToDisable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-[#FAF9F7] rounded-xl shadow-lg w-full max-w-md p-8 relative animate-fadeIn text-center">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
+              onClick={() => setShowDisableModal(false)}
+              aria-label="Fermer"
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-semibold mb-4">{userToDisable.disabled ? 'Activer Utilisateur' : 'Désactiver Utilisateur'}</h2>
+            <img src={disableLogo} alt="disable" className="mx-auto mb-4" style={{ width: 120, height: 120 }} />
+            <p className="mb-2">Êtes-vous sûr de vouloir {userToDisable.disabled ? 'activer' : 'désactiver'} <b>{userToDisable.name}</b>?</p>
+            <p className="mb-6 text-gray-500">Cette action est définitive.</p>
+            {disableError && <div className="text-red-500 text-sm mb-2">{disableError}</div>}
+            <div className="flex justify-center gap-4">
+              <button
+                className="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 font-medium"
+                onClick={() => setShowDisableModal(false)}
+                disabled={disableLoadingId === userToDisable._id}
+              >Annuler</button>
+              <button
+                className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:opacity-60"
+                disabled={disableLoadingId === userToDisable._id}
+                onClick={async () => {
+                  setDisableLoadingId(userToDisable._id);
+                  setDisableError('');
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`/api/users/${userToDisable._id}/disable`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                      },
+                      body: JSON.stringify({ disabled: !userToDisable.disabled })
+                    });
+                    if (res.ok) {
+                      setUsers(prev => prev.map(user => user._id === userToDisable._id ? { ...user, disabled: !userToDisable.disabled } : user));
+                      setShowDisableModal(false);
+                      setUserToDisable(null);
+                    } else {
+                      const data = await res.json();
+                      setDisableError(data.message || 'Erreur lors de la désactivation.');
+                    }
+                  } catch {
+                    setDisableError('Erreur réseau ou serveur.');
+                  }
+                  setDisableLoadingId(null);
+                }}
+              >{disableLoadingId === userToDisable._id ? '...' : (userToDisable.disabled ? 'Activer' : 'Désactiver')}</button>
+            </div>
+          </div>
+        </div>
+      )}
                             </div>
                           )}
                         </div>

@@ -1,27 +1,31 @@
+
 import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
-import LoginPage from './components/LoginPage' // Import the LoginPage component
-import RegisterPage from './components/RegisterPage'; // Import RegisterPage
-import AdminDashboard from './components/AdminDashboard'; // Import AdminDashboard
+
+import LoginPage from './components/LoginPage'
+import AdminDashboard from './components/AdminDashboard/AdminDashboard';
+import Users from './components/AdminDashboard/Users';
+
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [message, setMessage] = useState('')
-  const [showLogin, setShowLogin] = useState(true); // State to control login page visibility
-  const [userRole, setUserRole] = useState(null); // State to store user role
+  const [showLogin, setShowLogin] = useState(true);
+  const [user, setUser] = useState(null);
+  const [activePage, setActivePage] = useState('dashboard');
 
-  useEffect(() => {
-    fetch('/api/users')
-      .then(res => res.json())
-      .then(data => setMessage(data.message))
-      .catch(err => console.error("Error fetching data:", err))
-  }, [])
-
-  const handleLoginSuccess = (role) => {
+  const handleLoginSuccess = (userObj) => {
+    setUser(userObj);
     setShowLogin(false);
-    setUserRole(role); // Set the user role
+    setActivePage('dashboard');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setShowLogin(true);
+    setActivePage('dashboard');
+  };
+
+  const handleNavigate = (page) => {
+    setActivePage(page);
   };
 
   return (
@@ -29,22 +33,16 @@ function App() {
       {showLogin ? (
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <>
-          {userRole === 'admin' ? (
-            <AdminDashboard />
+        user ? (
+          activePage === 'users' ? (
+            <Users user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
           ) : (
-            <>
-              <button onClick={() => setShowLogin(true)}>Show Login</button>
-              <button onClick={() => setShowLogin(false)}>Show Register</button>
-              {/* Conditionally render RegisterPage or the original App content */}
-              {/* For now, we'll just show RegisterPage when not showing login */}
-              <RegisterPage />
-            </>
-          )}
-        </>
+            <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+          )
+        ) : null
       )}
     </>
-  )
+  );
 }
 
 export default App
