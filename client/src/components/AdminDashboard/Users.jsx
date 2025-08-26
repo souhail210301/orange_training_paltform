@@ -132,7 +132,7 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
       <AdminNavbar />
       <div className="flex flex-1">
         <AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+  <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{marginLeft:'288px', marginTop:'64px'}}>
           {/* Filters and Add User */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">

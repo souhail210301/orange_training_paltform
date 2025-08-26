@@ -75,7 +75,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
       <AdminNavbar />
       <div className="flex flex-1">
         <AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+  <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{marginLeft:'288px'}}>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Bonjour {user.name} !</h1>

@@ -31,7 +31,7 @@ router.get('/stats', getUserStats);
 
 // Admin-only routes
 router.get('/', protect, adminOnly, getAllUsers);
-router.get('/role/:role', protect, adminOnly, getUserByRole);
+router.get('/role/:role', getUserByRole);
 router.delete('/:id', protect, adminOnly, deleteUser);
 
 // Disable/enable user

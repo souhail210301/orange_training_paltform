@@ -2,10 +2,38 @@ const Catalogue = require('../models/Catalogue')
 
 const createCatalogue = async (req, res) => {
   try {
-    const catalogue = await Catalogue.create(req.body)
-    return res.status(201).json(catalogue)
+    const {
+      coverImage,
+      title,
+      trainers,
+      objectives,
+      program,
+      prerequisites,
+      language,
+      level,
+      type,
+      technologies
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+
+    const catalogue = await Catalogue.create({
+      coverImage,
+      title,
+      trainers,
+      objectives,
+      program,
+      prerequisites,
+      language,
+      level,
+      type,
+      technologies
+    });
+    return res.status(201).json(catalogue);
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to create catalogue' })
+    return res.status(500).json({ message: 'Failed to create catalogue', error: error.message });
   }
 }
 

@@ -20,7 +20,7 @@ const navItems = [
 
 const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout, onNavigate, activePage = 'dashboard' }) => {
   return (
-    <aside className="h-screen bg-white flex flex-col justify-between py-14 px-4 w-72 min-w-[16rem] border-r border-gray-100">
+  <aside className="h-screen bg-white flex flex-col justify-between py-4 px-4 w-72 min-w-[16rem] border-r border-gray-100 fixed top-16 left-0 z-30" style={{height:'calc(100vh - 64px)'}}>
       <nav className="space-y-2">
         {navItems.map((item) => (
           <button

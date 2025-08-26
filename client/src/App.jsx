@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react'
 import './App.css'
 
 import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import Users from './components/AdminDashboard/Users';
+import Catalogues from './components/AdminDashboard/Catalogues';
 
 
 function App() {
@@ -36,6 +36,8 @@ function App() {
         user ? (
           activePage === 'users' ? (
             <Users user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+          ) : activePage === 'catalogue' ? (
+            <Catalogues user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
           ) : (
             <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
           )

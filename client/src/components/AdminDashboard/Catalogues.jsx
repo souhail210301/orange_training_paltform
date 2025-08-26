@@ -1,267 +1,543 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import ImageUploadCard from './ImageUploadCard';
+import ImageCropperModal from './ImageCropperModal';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
 import { ChevronDown, Plus } from 'lucide-react';
+import CatalogueDetails from './CatalogueDetails';
 
 const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur' }, onLogout, onNavigate, activePage = 'catalogue' }) => {
+  // List of odc_mentor users
+  const [mentors, setMentors] = useState([]);
+  // Add/edit catalogue page navigation
+  const [showAddPage, setShowAddPage] = useState(false);
+  const [editCatalogue, setEditCatalogue] = useState(null);
+
+  // Always fetch mentors on mount, and also when add/edit page is opened (for freshest data)
+  useEffect(() => {
+    const fetchMentors = () => {
+      fetch('/api/users/role/odc_mentor')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setMentors(data);
+        });
+    };
+    fetchMentors();
+    // Also fetch again if add/edit page is opened
+    if (showAddPage || editCatalogue) {
+      fetchMentors();
+    }
+  }, [showAddPage, editCatalogue]);
+  // (Removed empty useEffect)
+  // Form state
+  const [form, setForm] = useState({
+    coverImage: '',
+    title: '',
+    trainers: [],
+    objectives: '',
+    program: [
+      { description: '', sessions: [ { from: '', to: '', description: '' } ] }
+    ],
+    prerequisites: '',
+    language: '',
+    level: '',
+    type: '',
+    technologies: []
+  });
   const [selectedFormateur, setSelectedFormateur] = useState('');
   const [selectedNiveau, setSelectedNiveau] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [techInput, setTechInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  // Image upload/crop modal state
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const fileInputRef = useRef();
 
-  const courses = [
-    {
-      id: 1,
-      title: "Cloud computing",
-      subtitle: "Formation en ligne",
-      description: "Développement Web Fullstack avec MERN Stack et Déploiement avec Docker",
-      level: "Niveau Avancé",
-      duration: "3 jours",
-      category: "Web",
-      bgImage: "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600",
-      atom: true
-    },
-    {
-      id: 2,
-      title: "Kotlin Multi Platform",
-      subtitle: "Formation en ligne",
-      description: "Développement Mobile avec Kotlin - Android 101",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "Mobile",
-      bgImage: "bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500"
-    },
-    {
-      id: 3,
-      title: "UX/UI Design avec Figma",
-      subtitle: "Formation en ligne",
-      description: "UX/UI Design avec Figma",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "Autre",
-      bgImage: "bg-gradient-to-br from-green-500 via-teal-500 to-blue-500"
-    },
-    {
-      id: 4,
-      title: "Introduction à l'intelligence artificielle",
-      subtitle: "Formation en ligne",
-      description: "Introduction à l'Intelligence Artificielle",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "IA",
-      bgImage: "bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
-    },
-    {
-      id: 5,
-      title: "Data science",
-      subtitle: "Formation en ligne",
-      description: "Développement Web Fullstack avec MERN Stack",
-      level: "Niveau Intermédiaire",
-      duration: "3 jours",
-      category: "Web",
-      bgImage: "bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600"
-    },
-    {
-      id: 6,
-      title: "Big Data",
-      subtitle: "Formation en ligne",
-      description: "Développement AR avec Vuforla et AR Foundation",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "Java Vuforia",
-      bgImage: "bg-gradient-to-br from-orange-600 via-red-600 to-pink-600"
-    },
-    {
-      id: 7,
-      title: "Kotlin Multi Platform",
-      subtitle: "Formation en ligne",
-      description: "Développement Web avec React, Redux Toolkit et Tailwind",
-      level: "Niveau Avancé",
-      duration: "3 jours",
-      category: "Web",
-      bgImage: "bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500"
-    },
-    {
-      id: 8,
-      title: "Python",
-      subtitle: "Formation en ligne",
-      description: "Python",
-      level: "Niveau Intermédiaire",
-      duration: "3 jours",
-      category: "Mobile",
-      bgImage: "bg-gradient-to-br from-green-600 via-blue-600 to-purple-600"
-    },
-    {
-      id: 9,
-      title: "Cloud computing",
-      subtitle: "Formation en ligne",
-      description: "Cloud computing",
-      level: "Niveau Avancé",
-      duration: "3 jours",
-      category: "Web",
-      bgImage: "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600",
-      atom: true
-    },
-    {
-      id: 10,
-      title: "Kotlin Multi Platform",
-      subtitle: "Formation en ligne",
-      description: "Kotlin Multi Platform",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "Mobile",
-      bgImage: "bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500"
-    },
-    {
-      id: 11,
-      title: "UX/UI Design avec Figma",
-      subtitle: "Formation en ligne",
-      description: "UX/UI Design avec Figma",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "Autre",
-      bgImage: "bg-gradient-to-br from-green-500 via-teal-500 to-blue-500"
-    },
-    {
-      id: 12,
-      title: "Introduction à l'intelligence artificielle",
-      subtitle: "Formation en ligne",
-      description: "Introduction à l'intelligence artificielle",
-      level: "Niveau Basique",
-      duration: "3 jours",
-      category: "IA",
-      bgImage: "bg-gradient-to-br from-purple-600 via-pink-600 to-red-600"
-    }
-  ];
+  // Fetch catalogues from backend
+  const [catalogues, setCatalogues] = useState([]);
+  const [loadingCatalogues, setLoadingCatalogues] = useState(true);
+  useEffect(() => {
+    const fetchCatalogues = async () => {
+      setLoadingCatalogues(true);
+      try {
+        const res = await fetch('/api/catalogues');
+        const data = await res.json();
+        setCatalogues(Array.isArray(data) ? data : []);
+      } catch {
+        setCatalogues([]);
+      }
+      setLoadingCatalogues(false);
+    };
+    fetchCatalogues();
+  }, []);
+
+  const [selectedCatalogueId, setSelectedCatalogueId] = useState(null);
+
+  // Navigation handler for demonstration (replace with router logic in App if needed)
+  // This component expects onNavigate to be passed from parent (App or Dashboard)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <AdminNavbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1" style={{marginTop:'64px'}}>
         <AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{marginLeft:'288px'}}>
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Catalogue</h1>
             </div>
-            <button className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium flex items-center gap-2 transition-colors">
+            <button
+              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium flex items-center gap-2 transition-colors"
+              onClick={() => setShowAddPage(true)}
+            >
               <Plus className="w-5 h-5" />
               Ajouter une formation
             </button>
+      {/* Modal Drawer */}
+  {/* Modal removed: add form is now a separate page */}
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-4 mb-8">
-            {/* Formateur Filter */}
-            <div className="relative">
-              <select 
-                value={selectedFormateur} 
-                onChange={(e) => setSelectedFormateur(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent min-w-[150px]"
+          {showAddPage || editCatalogue ? (
+            <div className="w-full p-8 bg-white rounded-xl shadow text-left">
+              <button onClick={() => { setShowAddPage(false); setEditCatalogue(null); }} className="mb-6 text-orange-500 hover:underline">&larr; Retour</button>
+              <h2 className="text-xl font-bold mb-6">{editCatalogue ? 'Modifier la formation' : 'Ajouter une formation'}</h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoading(true);
+                  setError('');
+                  try {
+                    const data = { ...form };
+                    data.technologies = data.technologies.filter(Boolean);
+                    if (!data.trainers || !data.trainers[0]) {
+                      setError('Veuillez sélectionner un formateur.');
+                      setLoading(false);
+                      return;
+                    }
+                    let res, result;
+                    if (editCatalogue) {
+                      res = await fetch(`/api/catalogues/${editCatalogue._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                      });
+                    } else {
+                      res = await fetch('/api/catalogues', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                      });
+                    }
+                    result = await res.json();
+                    if (!res.ok) throw new Error(result.message || 'Erreur lors de la sauvegarde');
+                    setShowAddPage(false);
+                    setEditCatalogue(null);
+                    // Refresh catalogue list
+                    setLoadingCatalogues(true);
+                    const refreshed = await fetch('/api/catalogues');
+                    const refreshedData = await refreshed.json();
+                    setCatalogues(Array.isArray(refreshedData) ? refreshedData : []);
+                  } catch (err) {
+                    setError(err.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="space-y-6 max-w-2xl text-left"
               >
-                <option value="">Formateur</option>
-                <option value="formateur1">Formateur 1</option>
-                <option value="formateur2">Formateur 2</option>
-                <option value="formateur3">Formateur 3</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-            </div>
-
-            {/* Niveau Filter */}
-            <div className="relative">
-              <select 
-                value={selectedNiveau} 
-                onChange={(e) => setSelectedNiveau(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent min-w-[150px]"
-              >
-                <option value="">Niveau</option>
-                <option value="basique">Niveau Basique</option>
-                <option value="intermediaire">Niveau Intermédiaire</option>
-                <option value="avance">Niveau Avancé</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-            </div>
-
-            {/* Type Filter */}
-            <div className="relative">
-              <select 
-                value={selectedType} 
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent min-w-[150px]"
-              >
-                <option value="">Type</option>
-                <option value="web">Web</option>
-                <option value="mobile">Mobile</option>
-                <option value="ia">Intelligence Artificielle</option>
-                <option value="autre">Autre</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Course Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {courses.map((course) => (
-              <div key={course.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-                {/* Course Image/Header */}
-                <div className={`h-40 ${course.bgImage} flex flex-col items-center justify-center relative p-4`}>
-                  {/* Three dots menu */}
-                  <button className="absolute top-4 right-4 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
-                  
-                  {/* Atom icon for certain courses */}
-                  {course.atom && (
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <svg className="w-16 h-16 text-white opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    </div>
-                  )}
-                  
-                  <div className="text-center text-white z-10">
-                    <h3 className="font-bold text-lg mb-1">{course.title}</h3>
-                    <p className="text-sm opacity-90">{course.subtitle}</p>
-                  </div>
-                  
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="text-white text-xs">
-                      <div className="font-medium">Digital Center</div>
-                      <div className="opacity-75">Siège Social d'ARTECNA CONSULTING</div>
-                    </div>
+                {/* Cover Image */}
+                <div className="mb-4 flex flex-col items-start">
+                  <label className="block font-medium mb-1">Photo de couverture</label>
+                  <div
+                    className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer border border-gray-200 mb-2"
+                    onClick={() => setShowImageUpload(true)}
+                  >
+                    {form.coverImage ? (
+                      <img src={form.coverImage} alt="cover" className="w-24 h-24 object-cover rounded-full" />
+                    ) : (
+                      <span className="text-gray-400 text-3xl">📷</span>
+                    )}
                   </div>
                 </div>
 
-                {/* Course Details */}
-                <div className="p-4">
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                      {course.level}
-                    </span>
+                {/* Image Upload Modal */}
+                {showImageUpload && (
+                  <ImageUploadCard
+                    onImageSelected={file => {
+                      setShowImageUpload(false);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setImageToCrop(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                )}
+                {/* Image Cropper Modal */}
+                {imageToCrop && (
+                  <ImageCropperModal
+                    image={imageToCrop}
+                    onCancel={() => setImageToCrop(null)}
+                    onConfirm={cropped => {
+                      setForm(f => ({ ...f, coverImage: cropped }));
+                      setImageToCrop(null);
+                    }}
+                  />
+                )}
+                {/* Title */}
+                <div className="mb-4 flex flex-col items-start">
+                  <label className="block font-medium mb-1">Nom de la formation</label>
+                  <input
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="Nom de votre formation"
+                    value={form.title}
+                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                    required
+                  />
+                </div>
+                {/* Trainers */}
+                <div className="mb-4 flex flex-col items-start">
+                  <label className="block font-medium mb-1">Formateur</label>
+                  <select
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    value={form.trainers[0] || ''}
+                    onChange={e => {
+                      setForm(f => ({ ...f, trainers: [e.target.value] }));
+                    }}
+                  >
+                    <option value="">Sélectionner un formateur</option>
+                    {mentors.map(m => (
+                      <option key={m._id} value={m._id}>{m.name} ({m.email})</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Objectives */}
+                <div>
+                  <label className="block font-medium mb-1">Objectifs Pédagogiques de la Formation</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="Les objectifs de la formation"
+                    value={form.objectives}
+                    onChange={e => setForm(f => ({ ...f, objectives: e.target.value }))}
+                  />
+                </div>
+                {/* Program */}
+                <div>
+                  <label className="block font-medium mb-1">Programme de la formation</label>
+                  {form.program.map((day, i) => (
+                    <div key={i} className="mb-4 border rounded p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold">Jour {i + 1}</span>
+                        <button type="button" className="text-red-500 text-xs" onClick={() => setForm(f => ({ ...f, program: f.program.filter((_, idx) => idx !== i) }))} disabled={form.program.length === 1}>Supprimer</button>
+                      </div>
+                      <input
+                        className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
+                        placeholder="Description du programme du jour"
+                        value={day.description}
+                        onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, description: e.target.value } : d) }))}
+                      />
+                      {day.sessions.map((session, j) => (
+                        <div key={j} className="flex gap-2 mb-2">
+                          <input
+                            type="time"
+                            className="border border-gray-300 rounded px-2 py-1"
+                            value={session.from}
+                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, from: e.target.value } : s) } : d) }))}
+                          />
+                          <input
+                            type="time"
+                            className="border border-gray-300 rounded px-2 py-1"
+                            value={session.to}
+                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, to: e.target.value } : s) } : d) }))}
+                          />
+                          <input
+                            className="flex-1 border border-gray-300 rounded px-2 py-1"
+                            placeholder="Description de la session"
+                            value={session.description}
+                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, description: e.target.value } : s) } : d) }))}
+                          />
+                          <button type="button" className="text-red-500" onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.filter((_, k) => k !== j) } : d) }))} disabled={day.sessions.length === 1}>🗑️</button>
+                          {j === day.sessions.length - 1 && (
+                            <button type="button" className="text-orange-500" onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: [...d.sessions, { from: '', to: '', description: '' }] } : d) }))}>+</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <button type="button" className="bg-orange-500 text-white px-3 py-1 rounded" onClick={() => setForm(f => ({ ...f, program: [...f.program, { description: '', sessions: [ { from: '', to: '', description: '' } ] }] }))}>+ Ajouter Un Jour</button>
+                </div>
+                {/* Prerequisites */}
+                <div>
+                  <label className="block font-medium mb-1">Pré-requis</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="Les prérequis de la formation"
+                    value={form.prerequisites}
+                    onChange={e => setForm(f => ({ ...f, prerequisites: e.target.value }))}
+                  />
+                </div>
+                {/* Language */}
+                <div>
+                  <label className="block font-medium mb-1">Langue</label>
+                  <input
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    placeholder="Insérer la langue de la formation"
+                    value={form.language}
+                    onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
+                  />
+                </div>
+                {/* Level & Type */}
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">Niveau de la formation</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      value={form.level}
+                      onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
+                    >
+                      <option value="">Niveau de la formation</option>
+                      <option value="Niveau Basique">Niveau Basique</option>
+                      <option value="Niveau Intermédiaire">Niveau Intermédiaire</option>
+                      <option value="Niveau Avancé">Niveau Avancé</option>
+                    </select>
                   </div>
-                  
-                  <h4 className="font-semibold text-gray-900 mb-2 text-sm leading-tight">
-                    {course.description}
-                  </h4>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Durée: {course.duration}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      course.category === 'Web' ? 'bg-blue-100 text-blue-700' :
-                      course.category === 'Mobile' ? 'bg-green-100 text-green-700' :
-                      course.category === 'IA' ? 'bg-purple-100 text-purple-700' :
-                      course.category === 'Java Vuforia' ? 'bg-orange-100 text-orange-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {course.category}
-                    </span>
+                  <div className="flex-1">
+                    <label className="block font-medium mb-1">Type de la formation</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      value={form.type}
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                    >
+                      <option value="">Type de la formation</option>
+                      <option value="Web">Web</option>
+                      <option value="Mobile">Mobile</option>
+                      <option value="Intelligence Artificielle">Intelligence Artificielle</option>
+                      <option value="Autre">Autre</option>
+                    </select>
                   </div>
+                </div>
+                {/* Technologies */}
+                <div>
+                  <label className="block font-medium mb-1">Technologies</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      className="flex-1 border border-gray-300 rounded px-3 py-2"
+                      placeholder="Ajouter une technologie"
+                      value={techInput}
+                      onChange={e => setTechInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && techInput && form.technologies.length < 10) {
+                          setForm(f => ({ ...f, technologies: [...f.technologies, techInput] }));
+                          setTechInput('');
+                          e.preventDefault();
+                        }
+                      }}
+                    />
+                    <button type="button" className="bg-orange-500 text-white px-3 py-2 rounded" onClick={() => { if (techInput && form.technologies.length < 10) { setForm(f => ({ ...f, technologies: [...f.technologies, techInput] })); setTechInput(''); } }}>Ajouter</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {form.technologies.map((tech, idx) => (
+                      <span key={idx} className="bg-gray-200 px-2 py-1 rounded text-sm flex items-center gap-1">
+                        {tech}
+                        <button type="button" className="text-red-500 ml-1" onClick={() => setForm(f => ({ ...f, technologies: f.technologies.filter((_, i) => i !== idx) }))}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Sélectionner jusqu'à 10 tags</div>
+                </div>
+                {/* Error & Actions */}
+                {error && <div className="text-red-500 text-sm">{error}</div>}
+                <div className="flex justify-end gap-2">
+                  <button type="button" className="px-4 py-2 rounded bg-gray-200" onClick={() => { setShowAddPage(false); setEditCatalogue(null); }} disabled={loading}>Annuler</button>
+                  <button type="submit" className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600" disabled={loading}>{loading ? (editCatalogue ? 'Modification...' : 'Ajout...') : (editCatalogue ? 'Modifier' : 'Ajouter')}</button>
+                </div>
+              </form>
+            </div>
+          ) : selectedCatalogueId ? (
+            <CatalogueDetails
+              catalogueId={selectedCatalogueId} 
+              onBack={() => {
+                setSelectedCatalogueId(null);
+                setLoadingCatalogues(false);
+              }}
+              mentors={mentors}
+              onDeleted={async () => {
+                setSelectedCatalogueId(null);
+                setLoadingCatalogues(true);
+                const refreshed = await fetch('/api/catalogues');
+                const refreshedData = await refreshed.json();
+                setCatalogues(Array.isArray(refreshedData) ? refreshedData : []);
+                setLoadingCatalogues(false);
+              }}
+              onEdit={cat => {
+                setEditCatalogue(cat);
+                setForm({
+                  coverImage: cat.coverImage || '',
+                  title: cat.title || '',
+                  trainers: cat.trainers && cat.trainers.length ? [cat.trainers[0]?._id || cat.trainers[0]] : [],
+                  objectives: cat.objectives || '',
+                  program: cat.program && cat.program.length ? cat.program : [ { description: '', sessions: [ { from: '', to: '', description: '' } ] } ],
+                  prerequisites: cat.prerequisites || '',
+                  language: cat.language || '',
+                  level: cat.level || '',
+                  type: cat.type || '',
+                  technologies: cat.technologies || []
+                });
+                setShowAddPage(false);
+              }}
+            />
+          ) : (
+            <>
+              {/* Filters */}
+              <div className="flex gap-4 mb-8">
+                {/* Formateur Filter */}
+                <div className="relative min-w-[130px] w-[130px]">
+                  <select
+                    value={selectedFormateur}
+                    onChange={e => setSelectedFormateur(e.target.value)}
+                    className="appearance-none w-full bg-white border border-gray-300 rounded-lg px-3 py-2 pr-7 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base"
+                  >
+                    <option value="">Formateur</option>
+                    {mentors.map(m => (
+                      <option key={m._id} value={m._id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
+                {/* Niveau Filter */}
+                <div className="relative min-w-[130px] w-[130px]">
+                  <select
+                    value={selectedNiveau}
+                    onChange={e => setSelectedNiveau(e.target.value)}
+                    className="appearance-none w-full bg-white border border-gray-300 rounded-lg px-3 py-2 pr-7 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base"
+                  >
+                    <option value="">Niveau</option>
+                    <option value="Niveau Basique">Niveau Basique</option>
+                    <option value="Niveau Intermédiaire">Niveau Intermédiaire</option>
+                    <option value="Niveau Avancé">Niveau Avancé</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
+                {/* Type Filter */}
+                <div className="relative min-w-[130px] w-[130px]">
+                  <select
+                    value={selectedType}
+                    onChange={e => setSelectedType(e.target.value)}
+                    className="appearance-none w-full bg-white border border-gray-300 rounded-lg px-3 py-2 pr-7 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base"
+                  >
+                    <option value="">Type</option>
+                    <option value="Web">Web</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="Intelligence Artificielle">Intelligence Artificielle</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Catalogue Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {loadingCatalogues ? (
+                  <div className="col-span-full text-center text-gray-500">Chargement...</div>
+                ) : catalogues
+                  .filter(cat => {
+                    // Formateur filter: support both _id and object in trainers array
+                    const matchFormateur = !selectedFormateur || (
+                      cat.trainers && cat.trainers.some(t => {
+                        if (!t) return false;
+                        if (typeof t === 'string') return t === selectedFormateur;
+                        if (typeof t === 'object' && t._id) return t._id === selectedFormateur;
+                        return false;
+                      })
+                    );
+                    return (
+                      matchFormateur &&
+                      (!selectedNiveau || cat.level === selectedNiveau) &&
+                      (!selectedType || cat.type === selectedType)
+                    );
+                  })
+                  .map((cat) => (
+                    <div
+                      key={cat._id}
+                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group cursor-pointer"
+                      onClick={() => setSelectedCatalogueId(cat._id)}
+                    >
+                    {/* Header with dark bg, atom icon, Orange branding, and menu */}
+                    <div className="relative h-44 bg-black flex flex-col justify-between p-5 pb-3">
+                      {/* Orange Digital Center */}
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-semibold text-orange-400 tracking-wide">Orange <span className="text-white">Digital Center</span></span>
+                        <button className="text-white opacity-70 hover:opacity-100"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="4" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="10" cy="16" r="2"/></svg></button>
+                      </div>
+                      {/* Atom icon */}
+                      <div className="absolute right-4 bottom-10">
+                        <svg className="w-20 h-20 opacity-80" viewBox="0 0 100 100">
+                          <ellipse cx="50" cy="50" rx="38" ry="15" fill="none" stroke="#ffb800" strokeWidth="3"/>
+                          <ellipse cx="50" cy="50" rx="15" ry="38" fill="none" stroke="#00baff" strokeWidth="3"/>
+                          <ellipse cx="50" cy="50" rx="30" ry="10" fill="none" stroke="#ff6ad5" strokeWidth="3" transform="rotate(45 50 50)"/>
+                          <circle cx="50" cy="50" r="10" fill="#ffb800" stroke="#000" strokeWidth="2"/>
+                        </svg>
+                      </div>
+                      {/* Title and subtitle */}
+                      <div className="z-10">
+                        <h3 className="font-bold text-2xl text-orange-400 mb-1">{cat.title}</h3>
+                        <div className="text-white text-sm font-medium">Formation en ligne</div>
+                        <div className="text-white text-xs mt-1">Du 22 au 24 Août</div>
+                      </div>
+                      {/* Trainer info */}
+                      <div className="mt-2 flex items-center gap-2 z-10">
+                        <div className="text-orange-400 text-xs font-semibold">Assurée par :</div>
+                        <div className="text-white text-xs font-medium truncate">
+                          {/* Show first trainer name if available */}
+                          {cat.trainers && cat.trainers.length > 0 ? (
+                            (() => {
+                              const t = cat.trainers[0];
+                              if (!t) return 'Formateur';
+                              if (typeof t === 'object' && t.name) return t.name;
+                              if (typeof t === 'object' && t._id) {
+                                const found = mentors.find(m => m._id === t._id);
+                                return found ? found.name : 'Formateur';
+                              }
+                              if (typeof t === 'string') {
+                                const found = mentors.find(m => m._id === t);
+                                return found ? found.name : 'Formateur';
+                              }
+                              return 'Formateur';
+                            })()
+                          ) : 'Formateur'}
+                        </div>
+                      </div>
+                      <div className="absolute bottom-2 right-2">
+                        <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded font-bold">orange</span>
+                      </div>
+                    </div>
+                    {/* Details */}
+                    <div className="p-4">
+                      <div className="mb-2">
+                        <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                          {cat.level}
+                        </span>
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-2 text-base leading-tight">
+                        {cat.objectives}
+                      </h4>
+                      <div className="flex items-center justify-between text-base">
+                        <span className="text-gray-700">Durée: {cat.program && cat.program.length ? cat.program.length : 1} jour{cat.program && cat.program.length > 1 ? 's' : ''}</span>
+                        <span className="px-3 py-1 rounded text-xs font-bold bg-orange-500 text-white">
+                          {cat.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

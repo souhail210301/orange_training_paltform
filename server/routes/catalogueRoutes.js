@@ -13,9 +13,9 @@ const router = express.Router()
 router.get('/', getCatalogues)
 router.get('/:id', getCatalogueById)
 
-router.post('/', protect, adminOnly, createCatalogue)
-router.put('/:id', protect, adminOnly, updateCatalogue)
-router.delete('/:id', protect, adminOnly, deleteCatalogue)
+router.post('/', createCatalogue)
+router.put('/:id', updateCatalogue)
+router.delete('/:id', deleteCatalogue)
 
 module.exports = router
 

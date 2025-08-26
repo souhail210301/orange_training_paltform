@@ -2,7 +2,7 @@ import React from 'react';
 
 const AdminNavbar = () => {
   return (
-    <nav className="w-full bg-white flex items-center justify-between px-8 py-3 shadow-sm">
+  <nav className="w-full bg-white flex items-center justify-between px-8 py-3 shadow-sm fixed top-0 left-0 z-40" style={{height:'64px'}}>
       {/* Logo and title */}
       <div className="flex items-center gap-2">
         <img src="/certif_logo.png" alt="Certif Logo" className="h-10 w-auto" />
