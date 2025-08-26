@@ -12,6 +12,7 @@ const roleLabels = {
 };
 
 const Users = ({ user, onLogout, onNavigate, activePage }) => {
+  const [users, setUsers] = useState([]);
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState('all');
   // Edit modal state (must be inside the component)
