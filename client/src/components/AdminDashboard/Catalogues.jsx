@@ -13,19 +13,23 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
   const [showAddPage, setShowAddPage] = useState(false);
   const [editCatalogue, setEditCatalogue] = useState(null);
 
-  // Always fetch mentors on mount, and also when add/edit page is opened (for freshest data)
+  // Always fetch mentors on mount so trainer names are available for the catalogue list
   useEffect(() => {
-    const fetchMentors = () => {
+    fetch('/api/users/role/odc_mentor')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setMentors(data);
+      });
+  }, []);
+
+  // Also fetch mentors when opening add or edit page to ensure select is up to date
+  useEffect(() => {
+    if (showAddPage || editCatalogue) {
       fetch('/api/users/role/odc_mentor')
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) setMentors(data);
         });
-    };
-    fetchMentors();
-    // Also fetch again if add/edit page is opened
-    if (showAddPage || editCatalogue) {
-      fetchMentors();
     }
   }, [showAddPage, editCatalogue]);
   // (Removed empty useEffect)
@@ -55,23 +59,31 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
   const [imageToCrop, setImageToCrop] = useState(null);
   const fileInputRef = useRef();
 
+  // Fetch catalogues from backend (declarations moved above)
   // Fetch catalogues from backend
   const [catalogues, setCatalogues] = useState([]);
   const [loadingCatalogues, setLoadingCatalogues] = useState(true);
+  const fetchCatalogues = async () => {
+    setLoadingCatalogues(true);
+    try {
+      const res = await fetch('/api/catalogues');
+      const data = await res.json();
+      setCatalogues(Array.isArray(data) ? data : []);
+    } catch {
+      setCatalogues([]);
+    }
+    setLoadingCatalogues(false);
+  };
   useEffect(() => {
-    const fetchCatalogues = async () => {
-      setLoadingCatalogues(true);
-      try {
-        const res = await fetch('/api/catalogues');
-        const data = await res.json();
-        setCatalogues(Array.isArray(data) ? data : []);
-      } catch {
-        setCatalogues([]);
-      }
-      setLoadingCatalogues(false);
-    };
     fetchCatalogues();
   }, []);
+
+  // Refresh catalogue list after closing add/edit page
+  useEffect(() => {
+    if (!showAddPage && !editCatalogue) {
+      fetchCatalogues();
+    }
+  }, [showAddPage, editCatalogue]);
 
   const [selectedCatalogueId, setSelectedCatalogueId] = useState(null);
 
@@ -102,7 +114,28 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
 
           {showAddPage || editCatalogue ? (
             <div className="w-full p-8 bg-white rounded-xl shadow text-left">
-              <button onClick={() => { setShowAddPage(false); setEditCatalogue(null); }} className="mb-6 text-orange-500 hover:underline">&larr; Retour</button>
+              <button onClick={() => {
+                setShowAddPage(false);
+                setEditCatalogue(null);
+                setSelectedCatalogueId(null);
+                setSelectedFormateur('');
+                setSelectedNiveau('');
+                setSelectedType('');
+                setForm({
+                  coverImage: '',
+                  title: '',
+                  trainers: [],
+                  objectives: '',
+                  program: [
+                    { description: '', sessions: [ { from: '', to: '', description: '' } ] }
+                  ],
+                  prerequisites: '',
+                  language: '',
+                  level: '',
+                  type: '',
+                  technologies: []
+                });
+              }} className="mb-6 text-orange-500 hover:underline">&larr; Retour</button>
               <h2 className="text-xl font-bold mb-6">{editCatalogue ? 'Modifier la formation' : 'Ajouter une formation'}</h2>
               <form
                 onSubmit={async (e) => {
@@ -112,11 +145,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                   try {
                     const data = { ...form };
                     data.technologies = data.technologies.filter(Boolean);
-                    if (!data.trainers || !data.trainers[0]) {
-                      setError('Veuillez sélectionner un formateur.');
-                      setLoading(false);
-                      return;
-                    }
+                    // Trainer is now optional
                     let res, result;
                     if (editCatalogue) {
                       res = await fetch(`/api/catalogues/${editCatalogue._id}`, {
@@ -135,11 +164,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                     if (!res.ok) throw new Error(result.message || 'Erreur lors de la sauvegarde');
                     setShowAddPage(false);
                     setEditCatalogue(null);
-                    // Refresh catalogue list
-                    setLoadingCatalogues(true);
-                    const refreshed = await fetch('/api/catalogues');
-                    const refreshedData = await refreshed.json();
-                    setCatalogues(Array.isArray(refreshedData) ? refreshedData : []);
+                    // No need to refresh catalogue list here; handled by useEffect
                   } catch (err) {
                     setError(err.message);
                   } finally {
@@ -207,10 +232,10 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                     className="w-full border border-gray-300 rounded px-3 py-2"
                     value={form.trainers[0] || ''}
                     onChange={e => {
-                      setForm(f => ({ ...f, trainers: [e.target.value] }));
+                      setForm(f => ({ ...f, trainers: e.target.value ? [e.target.value] : [] }));
                     }}
                   >
-                    <option value="">Sélectionner un formateur</option>
+                    <option value="">Aucun formateur</option>
                     {mentors.map(m => (
                       <option key={m._id} value={m._id}>{m.name} ({m.email})</option>
                     ))}
@@ -361,10 +386,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
           ) : selectedCatalogueId ? (
             <CatalogueDetails
               catalogueId={selectedCatalogueId} 
-              onBack={() => {
-                setSelectedCatalogueId(null);
-                setLoadingCatalogues(false);
-              }}
+              onBack={() => setSelectedCatalogueId(null)}
               mentors={mentors}
               onDeleted={async () => {
                 setSelectedCatalogueId(null);
@@ -495,25 +517,12 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                         <div className="text-white text-xs font-medium truncate">
                           {/* Show first trainer name if available */}
                           {cat.trainers && cat.trainers.length > 0 ? (
-                            (() => {
-                              const t = cat.trainers[0];
-                              if (!t) return 'Formateur';
-                              if (typeof t === 'object' && t.name) return t.name;
-                              if (typeof t === 'object' && t._id) {
-                                const found = mentors.find(m => m._id === t._id);
-                                return found ? found.name : 'Formateur';
-                              }
-                              if (typeof t === 'string') {
-                                const found = mentors.find(m => m._id === t);
-                                return found ? found.name : 'Formateur';
-                              }
-                              return 'Formateur';
-                            })()
-                          ) : 'Formateur'}
+                            <span>{mentors.find(m => m._id === (cat.trainers[0]?._id || cat.trainers[0]))?.name || 'Aucun Formateur'}</span>
+                          ) : 'Aucun Formateur'}
                         </div>
                       </div>
                       <div className="absolute bottom-2 right-2">
-                        <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded font-bold">orange</span>
+                        <img src="/orange_logo.png" alt="Orange Logo" className="h-6 w-6 object-contain" />
                       </div>
                     </div>
                     {/* Details */}

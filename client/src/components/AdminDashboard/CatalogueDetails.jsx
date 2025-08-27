@@ -65,22 +65,7 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit }) =
       )}
       </div>
       <h1 className="text-3xl font-bold mb-2">{catalogue.title}</h1>
-      <div className="mb-2 text-gray-700">Formateur: {catalogue.trainers && catalogue.trainers.length > 0 ? (
-        (() => {
-          const t = catalogue.trainers[0];
-          if (!t) return 'Formateur';
-          if (typeof t === 'object' && t.name) return t.name;
-          if (typeof t === 'object' && t._id) {
-            const found = mentors.find(m => m._id === t._id);
-            return found ? found.name : 'Formateur';
-          }
-          if (typeof t === 'string') {
-            const found = mentors.find(m => m._id === t);
-            return found ? found.name : 'Formateur';
-          }
-          return 'Formateur';
-        })()
-      ) : 'Formateur'}</div>
+      <div className="mb-2 text-gray-700">Formateur: {catalogue.trainers && catalogue.trainers.length > 0 ? (mentors.find(m => m._id === (catalogue.trainers[0]?._id || catalogue.trainers[0]))?.name || 'Formateur') : 'Formateur'}</div>
       <div className="mb-6">
         <h2 className="font-semibold mb-1">Objectifs Pédagogiques de la Formation</h2>
         <div className="text-gray-800">{catalogue.objectives}</div>
