@@ -60,13 +60,14 @@ function loadEmailLogo() {
   return _emailLogoCache || { cid: 'odc_certif_logo' };
 }
 
-function buildSimpleBrandedEmail({ title, userName, paragraphs }) {
+function buildSimpleBrandedEmail({ title, userName, paragraphs, button }) {
   const brandColor = '#ff7900';
   const logoInfo = loadEmailLogo();
   const logoTag = logoInfo.buffer || logoInfo.externalUrl
     ? `<img src="${logoInfo.buffer ? 'cid:' + logoInfo.cid : logoInfo.externalUrl}" alt="ODC Certif" style="height:48px;display:block;" />`
     : '';
   const paraHtml = paragraphs.map(p => `<p style=\"margin:0 0 16px 0;font-size:14px;line-height:1.5;\">${p}</p>`).join('');
+  const buttonHtml = button && button.url && button.label ? `\n<table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"margin:32px 0 8px 0;\"><tr><td bgcolor=\"${brandColor}\" style=\"border-radius:2px;\"><a href=\"${button.url}\" style=\"display:inline-block;padding:12px 24px;font-size:14px;color:#fff;text-decoration:none;font-weight:500;background:${brandColor};\">${button.label}</a></td></tr></table>` : '';
   const year = new Date().getFullYear();
   return `<!DOCTYPE html><html lang="fr"><head><meta charSet="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" /><title>${title}</title></head>
@@ -84,46 +85,81 @@ ${paraHtml}
 </td></tr></table></body></html>`;
 }
 
-// Register User
+// Register User (sends welcome email with credentials)
 const registerUser = async (req, res) => {
-  const { name, email, password, phone_number, role, university } = req.body
+  const { name, email, password, phone_number, role, university } = req.body;
 
   try {
-    const userExists = await User.findOne({ email })
-    if (userExists) return res.status(400).json({ message: 'User already exists' })
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const rawPassword = password; // keep plaintext for email BEFORE hashing
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Special handling for university representatives
+    let createdUser;
     if (role === 'university_representative') {
       if (!university) {
-        return res.status(400).json({ message: 'university is required for role university_representative' })
+        return res.status(400).json({ message: 'university is required for role university_representative' });
       }
-      await UniversityRepresentative.create({
+      createdUser = await UniversityRepresentative.create({
         name,
         email,
         password: hashedPassword,
         phone_number,
         role,
         university
-      })
+      });
     } else {
-      // Use new User() and .save() instead of User.create()
       const newUser = new User({
         name,
         email,
         password: hashedPassword,
         phone_number,
         role
-      })
-      await newUser.save()
+      });
+      createdUser = await newUser.save();
     }
 
-    res.status(201).json({ message: 'User registered successfully' })
+    // Send welcome email asynchronously (fire-and-forget)
+    (async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.EMAIL_USERNAME, pass: process.env.EMAIL_PASSWORD }
+        });
+        const logoInfo = loadEmailLogo();
+        const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const dashboardUrl = `${frontendBase.replace(/\/$/, '')}/login`;
+        const html = buildSimpleBrandedEmail({
+          title: 'Votre compte a été créé!',
+          userName: name,
+          paragraphs: [
+            'Nous avons le plaisir de vous informer que votre compte sur la plateforme ODC Certif a été créé avec succès.',
+            'Vous pouvez dès maintenant accéder à votre espace personnel pour :',
+            '<ul style="margin:0 0 16px 16px;padding:0;font-size:14px;line-height:1.5;">\n<li>Consulter le catalogue de formations disponibles</li>\n<li>Planifier des sessions</li>\n<li>Suivre vos participants</li>\n</ul>',
+            '<strong>Identifiants de connexion :</strong>',
+            `Email : <strong>${email}</strong><br/>Mot de passe : <strong>${rawPassword}</strong>`,
+            "Si vous avez des questions ou besoin d’assistance, n’hésitez pas à nous envoyer un e‑mail!",
+            '<span style="font-size:11px;color:#555;display:block;margin-top:24px;">Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer cet e‑mail.</span>'
+          ],
+          button: { label: 'Accéder à votre Dashboard', url: dashboardUrl }
+        });
+        const mailOptions = {
+          from: process.env.EMAIL_USERNAME,
+          to: email,
+          subject: 'Bienvenue sur ODC Certif',
+          html,
+          attachments: logoInfo.buffer ? [{ filename: logoInfo.filename, content: logoInfo.buffer, cid: logoInfo.cid }] : undefined
+        };
+        await transporter.sendMail(mailOptions);
+      } catch (e) { console.error('Failed to send welcome email', e); }
+    })();
+
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-}
+};
 
 // Login User
 const loginUser = async (req, res) => {
