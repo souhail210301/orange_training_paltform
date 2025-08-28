@@ -26,6 +26,26 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	const [showOld, setShowOld] = useState(false);
 	const [showNew, setShowNew] = useState(false);
 	const [showConfirm, setShowConfirm] = useState(false);
+	// Settings (notification) preferences state lifted to top-level to avoid hooks in conditional render
+	const [prefs, setPrefs] = useState({
+		desktop: [true, true, false, false],
+		mobile: [false, false, false]
+	});
+	const togglePref = (group, idx) => setPrefs(p => ({ ...p, [group]: p[group].map((v,i)=> i===idx ? !v : v) }));
+	const Switch = ({ enabled, onClick }) => (
+		<button type="button" onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${enabled ? 'bg-blue-500' : 'bg-gray-300'}`}> 
+			<span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-1'}`}></span>
+		</button>
+	);
+	const PrefRow = ({ title, desc, enabled, onToggle }) => (
+		<div className="flex items-start justify-between py-3 border-b last:border-b-0">
+			<div>
+				<div className="text-sm font-medium text-gray-900">{title}</div>
+				<div className="text-xs text-gray-500">{desc}</div>
+			</div>
+			<Switch enabled={enabled} onClick={onToggle} />
+		</div>
+	);
 
 	useEffect(() => {   
 		if (user) {
@@ -201,7 +221,29 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 			case 'notifications':
 				return <div className="text-sm text-gray-600">Aucune notification configurable pour l'instant.</div>;
 			case 'settings':
-				return <div className="text-sm text-gray-600">Paramètres supplémentaires à venir.</div>;
+				return (
+					<div className="space-y-10">
+						<section>
+							<h2 className="text-xl font-semibold mb-1">Notifications Desktop</h2>
+							<p className="text-sm text-gray-600 mb-4">Toutes vos notifications sont regroupées ici.</p>
+							<div className="divide-y">
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.desktop[0]} onToggle={()=>togglePref('desktop',0)} />
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.desktop[1]} onToggle={()=>togglePref('desktop',1)} />
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.desktop[2]} onToggle={()=>togglePref('desktop',2)} />
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.desktop[3]} onToggle={()=>togglePref('desktop',3)} />
+							</div>
+						</section>
+						<section>
+							<h2 className="text-xl font-semibold mb-1">Notifications Mobile</h2>
+							<p className="text-sm text-gray-600 mb-4">Toutes vos notifications sont regroupées ici.</p>
+							<div className="divide-y">
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.mobile[0]} onToggle={()=>togglePref('mobile',0)} />
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.mobile[1]} onToggle={()=>togglePref('mobile',1)} />
+								<PrefRow title="Notifications via Email" desc="Recevoir un email quand vous êtes hors ligne" enabled={prefs.mobile[2]} onToggle={()=>togglePref('mobile',2)} />
+							</div>
+						</section>
+					</div>
+				);
 			default:
 				return null;
 		}
