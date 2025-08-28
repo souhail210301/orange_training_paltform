@@ -35,6 +35,55 @@ const nodemailer = require('nodemailer'); // For sending emails
 const fs = require('fs');
 const path = require('path');
 
+// Utility: load logo once for embedding in emails
+let _emailLogoCache = null; // { buffer, filename, cid }
+function loadEmailLogo() {
+  if (_emailLogoCache) return _emailLogoCache;
+  const logoFilePathEnv = process.env.EMAIL_LOGO_PATH; // optional explicit path
+  const candidatePaths = [
+    logoFilePathEnv,
+    path.resolve(__dirname, '../../client/public/certif_logo.png'),
+    path.resolve(__dirname, '../../client/public/logo_orange_certif.png')
+  ].filter(Boolean);
+  for (const p of candidatePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        _emailLogoCache = { buffer: fs.readFileSync(p), filename: path.basename(p), cid: 'odc_certif_logo' };
+        break;
+      }
+    } catch { /* ignore */ }
+  }
+  if (!_emailLogoCache && process.env.EMAIL_LOGO_URL) {
+    // External URL fallback (not embedded, so no attachment buffer)
+    _emailLogoCache = { externalUrl: process.env.EMAIL_LOGO_URL, cid: 'odc_certif_logo' };
+  }
+  return _emailLogoCache || { cid: 'odc_certif_logo' };
+}
+
+function buildSimpleBrandedEmail({ title, userName, paragraphs }) {
+  const brandColor = '#ff7900';
+  const logoInfo = loadEmailLogo();
+  const logoTag = logoInfo.buffer || logoInfo.externalUrl
+    ? `<img src="${logoInfo.buffer ? 'cid:' + logoInfo.cid : logoInfo.externalUrl}" alt="ODC Certif" style="height:48px;display:block;" />`
+    : '';
+  const paraHtml = paragraphs.map(p => `<p style=\"margin:0 0 16px 0;font-size:14px;line-height:1.5;\">${p}</p>`).join('');
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html><html lang="fr"><head><meta charSet="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" /><title>${title}</title></head>
+<body style="margin:0;padding:0;background:#f8f8f8;font-family:Arial,Helvetica,sans-serif;color:#111;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8f8f8;"><tr><td align="center">
+<table role="presentation" width="650" cellspacing="0" cellpadding="0" border="0" style="background:#fff;border:1px solid #000000;border-bottom:0;">
+<tr><td style="padding:34px 64px 48px 64px;">
+<div style="font-size:0;line-height:0;">${logoTag}</div>
+<h1 style="margin:24px 0 32px 0;font-size:32px;line-height:1.2;font-weight:700;">${title}</h1>
+<p style="margin:0 0 16px 0;font-size:14px;">Bonjour <strong>${userName || 'Utilisateur'}</strong>!</p>
+${paraHtml}
+<p style="margin:32px 0 0 0;font-size:14px;">Merci,<br/>Équipe Orange Digital Center</p>
+</td></tr></table>
+<table role="presentation" width="650" cellspacing="0" cellpadding="0" border="0" style="background:${brandColor};"><tr><td style="padding:16px 64px;text-align:center;color:#fff;font-size:11px;">© ${year} Orange Digital Center</td></tr></table>
+</td></tr></table></body></html>`;
+}
+
 // Register User
 const registerUser = async (req, res) => {
   const { name, email, password, phone_number, role, university } = req.body
@@ -267,6 +316,34 @@ const resetPassword = async (req, res) => {
     await user.save();
 
     console.log('Password reset successful for user:', user.email);
+
+    // Fire-and-forget confirmation email
+    (async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.EMAIL_USERNAME, pass: process.env.EMAIL_PASSWORD }
+        });
+        const logoInfo = loadEmailLogo();
+        const html = buildSimpleBrandedEmail({
+          title: 'Votre mot de passe a été modifié.',
+          userName: user.name,
+          paragraphs: [
+            "Cet email confirme que vous avez modifié avec succès le mot de passe de votre compte ODC Certif. Aucune autre action n'est requise.",
+            "Veuillez nous contacter si vous n'êtes pas à l'origine de cette modification."
+          ]
+        });
+        const mailOptions = {
+          from: process.env.EMAIL_USERNAME,
+          to: user.email,
+          subject: 'Confirmation de modification du mot de passe',
+          html,
+          attachments: logoInfo.buffer ? [{ filename: logoInfo.filename, content: logoInfo.buffer, cid: logoInfo.cid }] : undefined
+        };
+        await transporter.sendMail(mailOptions);
+      } catch (e) { console.error('Failed to send password reset confirmation email', e); }
+    })();
+
     res.status(200).json({ message: 'Password has been reset successfully.' });
   } catch (error) {
     console.error('Reset password error:', error, { token, password });
@@ -294,6 +371,33 @@ const changePassword = async (req, res) => {
     // Hash and update new password
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    // Fire-and-forget confirmation email
+    (async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.EMAIL_USERNAME, pass: process.env.EMAIL_PASSWORD }
+        });
+        const logoInfo = loadEmailLogo();
+        const html = buildSimpleBrandedEmail({
+          title: 'Votre mot de passe a été modifié.',
+          userName: user.name,
+          paragraphs: [
+            "Cet email confirme que vous avez modifié avec succès le mot de passe de votre compte ODC Certif. Aucune autre action n'est requise.",
+            "Veuillez nous contacter si vous n'êtes pas à l'origine de cette modification."
+          ]
+        });
+        const mailOptions = {
+          from: process.env.EMAIL_USERNAME,
+          to: user.email,
+          subject: 'Confirmation de modification du mot de passe',
+          html,
+          attachments: logoInfo.buffer ? [{ filename: logoInfo.filename, content: logoInfo.buffer, cid: logoInfo.cid }] : undefined
+        };
+        await transporter.sendMail(mailOptions);
+      } catch (e) { console.error('Failed to send change password confirmation email', e); }
+    })();
 
     res.status(200).json({ message: 'Password changed successfully.' });
   } catch (error) {
