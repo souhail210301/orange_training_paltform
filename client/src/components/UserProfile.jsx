@@ -16,6 +16,16 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
+	// Password change states
+	const [oldPassword, setOldPassword] = useState('');
+	const [newPassword, setNewPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
+	const [pwError, setPwError] = useState('');
+	const [pwSuccess, setPwSuccess] = useState('');
+	const [pwLoading, setPwLoading] = useState(false);
+	const [showOld, setShowOld] = useState(false);
+	const [showNew, setShowNew] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
 
 	useEffect(() => {   
 		if (user) {
@@ -105,9 +115,87 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 					</div>
 				);
 			case 'password':
+				const validatePassword = () => {
+					if (!oldPassword || !newPassword || !confirmPassword) return 'Tous les champs sont requis.';
+					if (newPassword === oldPassword) return 'Le nouveau mot de passe doit être différent de l\'ancien.';
+					if (newPassword.length < 8) return 'Minimum 8 caractères.';
+					if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) return 'Doit contenir majuscule, chiffre et symbole.';
+					if (newPassword !== confirmPassword) return 'La confirmation ne correspond pas.';
+					return '';
+				};
+
+				const handleChangePassword = async () => {
+					setPwError(''); setPwSuccess('');
+					const v = validatePassword();
+					if (v) { setPwError(v); return; }
+					setPwLoading(true);
+					try {
+						const token = localStorage.getItem('token');
+						const res = await fetch('/api/users/change-password', {
+							method: 'PUT',
+							headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+							body: JSON.stringify({ currentPassword: oldPassword, newPassword })
+						});
+						const data = await res.json();
+						if (res.ok) {
+							setPwSuccess('Mot de passe modifié. Déconnexion...');
+							setTimeout(() => {
+								localStorage.removeItem('token');
+								if (typeof onLogout === 'function') onLogout();
+								if (typeof onNavigate === 'function') onNavigate('/login');
+							}, 1500);
+						} else {
+							setPwError(data.message || 'Erreur lors de la modification.');
+						}
+					} catch (e) {
+						setPwError(e.message);
+					}
+					setPwLoading(false);
+				};
+
+				const inputBase = 'w-full pl-10 pr-10 py-2 border rounded bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500';
+				const iconSpan = 'absolute left-3 top-1/2 -translate-y-1/2 inline-flex items-center pointer-events-none';
+				const eyeBtn = 'absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700';
+
 				return (
-					<div className="space-y-6">
-						<p className="text-sm text-gray-600">Fonctionnalité à implémenter: changement de mot de passe (utiliser PUT /api/users/change-password).</p>
+					<div className="space-y-8">
+						<div>
+							<h2 className="text-2xl font-semibold mb-1">Modifier votre mot de passe</h2>
+							<p className="text-sm text-gray-600">Vous serez déconnecté de tous les appareils après avoir changé votre mot de passe.</p>
+						</div>
+						<div className="space-y-6 max-w-3xl">
+							{/* Ancien mot de passe */}
+							<div>
+								<label className="block text-sm font-medium mb-1">Ancien mot de passe</label>
+								<div className="relative">
+									<span className={iconSpan}><img src="/lock_icon.png" alt="Lock" className="w-4 h-4 opacity-70" /></span>
+									<input type={showOld ? 'text' : 'password'} placeholder="Ancien Mot de passe" className={inputBase} value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
+									<button type="button" onClick={() => setShowOld(s => !s)} className={eyeBtn}>{showOld ? 'Masquer' : 'Afficher'}</button>
+								</div>
+							</div>
+							{/* Nouveau mot de passe */}
+							<div>
+								<label className="block text-sm font-medium mb-1">Nouveau mot de passe</label>
+								<div className="relative">
+									<span className={iconSpan}><img src="/lock_icon.png" alt="Lock" className="w-4 h-4 opacity-70" /></span>
+									<input type={showNew ? 'text' : 'password'} placeholder="Nouveau mot de passe" className={inputBase} value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+									<button type="button" onClick={() => setShowNew(s => !s)} className={eyeBtn}>{showNew ? 'Masquer' : 'Afficher'}</button>
+								</div>
+								<p className="mt-1 text-xs text-gray-500">Doit contenir au moins 8 caractères, dont au moins 1 majuscule, 1 chiffre et 1 symbole.</p>
+							</div>
+							{/* Confirmation */}
+							<div>
+								<label className="block text-sm font-medium mb-1">Confirmer le nouveau mot de passe</label>
+								<div className="relative">
+									<span className={iconSpan}><img src="/lock_icon.png" alt="Lock" className="w-4 h-4 opacity-70" /></span>
+									<input type={showConfirm ? 'text' : 'password'} placeholder="Confirmer le mot de passe" className={inputBase} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+									<button type="button" onClick={() => setShowConfirm(s => !s)} className={eyeBtn}>{showConfirm ? 'Masquer' : 'Afficher'}</button>
+								</div>
+							</div>
+							{pwError && <div className="text-sm text-red-600">{pwError}</div>}
+							{pwSuccess && <div className="text-sm text-green-600">{pwSuccess}</div>}
+							<button onClick={handleChangePassword} disabled={pwLoading} className="px-8 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-60">{pwLoading ? '...' : 'Confirmer et se déconnecter'}</button>
+						</div>
 					</div>
 				);
 			case 'notifications':
