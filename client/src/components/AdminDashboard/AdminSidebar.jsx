@@ -45,7 +45,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
       <div className="flex-shrink-0" style={{ minHeight: '7rem' }}></div>
       {/* User card at the bottom, but visually raised */}
       <div className="mb-4">
-        <div className="flex items-center bg-gray-50 rounded-lg p-3 shadow-sm">
+  <div className="flex items-center bg-gray-50 rounded-lg p-3 shadow-sm cursor-pointer" onClick={() => handleNav('profile')} title="Profil utilisateur">
           <div className="bg-orange-500 rounded-md p-2 mr-3 flex items-center justify-center">
             <img src="/avatar.png" alt="Profile" className="h-8 w-8 object-contain" />
           </div>
@@ -53,7 +53,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
             <div className="font-semibold text-gray-900 leading-tight">{user.name}</div>
             <div className="text-xs text-gray-500">{user.role}</div>
           </div>
-          <button className="ml-2 text-gray-500 hover:text-orange-500" onClick={onLogout} title="Se déconnecter">
+          <button className="ml-2 text-gray-500 hover:text-orange-500" onClick={(e) => { e.stopPropagation(); onLogout && onLogout(); }} title="Se déconnecter">
             <LogOut className="w-5 h-5" />
           </button>
         </div>

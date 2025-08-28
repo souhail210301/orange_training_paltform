@@ -6,6 +6,7 @@ import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import Users from './components/AdminDashboard/Users';
 import Catalogues from './components/AdminDashboard/Catalogues';
+import UserProfile from './components/UserProfile';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
   let activePage = 'dashboard';
   if (path.startsWith('/admin/users')) activePage = 'users';
   else if (path.startsWith('/admin/catalogue')) activePage = 'catalogue';
+  else if (path.startsWith('/admin/profile')) activePage = 'profile';
 
   const handleLoginSuccess = (userObj) => {
     setUser(userObj);
@@ -34,6 +36,7 @@ function App() {
   const handleNavigate = (page) => {
     if (page === 'users') navigate('/admin/users');
     else if (page === 'catalogue') navigate('/admin/catalogue');
+  else if (page === 'profile') navigate('/admin/profile');
     else navigate('/admin/dashboard');
   };
 
@@ -79,6 +82,9 @@ function App() {
   }
   if (activePage === 'catalogue') {
     return <Catalogues user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+  }
+  if (activePage === 'profile') {
+    return <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
   }
   return <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
 }

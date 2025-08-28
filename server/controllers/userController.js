@@ -32,6 +32,8 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto'); // For generating tokens
 const nodemailer = require('nodemailer'); // For sending emails
+const fs = require('fs');
+const path = require('path');
 
 // Register User
 const registerUser = async (req, res) => {
@@ -133,14 +135,16 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User with that email does not exist.' });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 3600000; // 1 hour
-    await user.save();
+  // Generate reset token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  user.resetPasswordToken = resetToken;
+  // 15 minutes validity to match requested email wording
+  user.resetPasswordExpire = Date.now() + (15 * 60 * 1000);
+  await user.save();
 
-  // Send email with reset link (frontend URL)
-  const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+  // Frontend base URL (allow override via env)
+  const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetUrl = `${frontendBase.replace(/\/$/, '')}/reset-password/${resetToken}`;
 
     const transporter = nodemailer.createTransport({
       service: 'gmail', // You can use other services like SendGrid, Mailgun, etc.
@@ -150,11 +154,68 @@ const forgotPassword = async (req, res) => {
       },
     });
 
+    const brandColor = '#ff7900';
+    // Attempt to load local logo file for CID embedding (preferred for email clients)
+    const logoFilePathEnv = process.env.EMAIL_LOGO_PATH; // optional explicit path
+    const candidatePaths = [
+      logoFilePathEnv,
+      path.resolve(__dirname, '../../client/public/certif_logo.png'),
+      path.resolve(__dirname, '../../client/public/logo_orange_certif.png')
+    ].filter(Boolean);
+    let logoBuffer = null;
+    let logoFilename = 'logo.png';
+    for (const p of candidatePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          logoBuffer = fs.readFileSync(p);
+          logoFilename = path.basename(p);
+          break;
+        }
+      } catch { /* ignore */ }
+    }
+    const hasLogo = !!logoBuffer;
+    const logoCid = 'odc_certif_logo';
     const mailOptions = {
       from: process.env.EMAIL_USERNAME,
       to: user.email,
-      subject: 'Password Reset Request',
-      html: `<p>You requested a password reset</p><p>Click this <a href="${resetUrl}">link</a> to reset your password.</p>`,
+      subject: 'Réinitialisation de votre mot de passe',
+      attachments: hasLogo ? [{ filename: logoFilename, content: logoBuffer, cid: logoCid }] : undefined,
+      html: `<!DOCTYPE html>
+<html lang="fr"><head><meta charSet="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Réinitialisez votre mot de passe</title></head>
+<body style="margin:0;padding:0;background:#f8f8f8;font-family:Arial,Helvetica,sans-serif;color:#111;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8f8f8;">
+    <tr><td align="center">
+      <table role="presentation" width="650" cellspacing="0" cellpadding="0" border="0" style="background:#fff;border:1px solid #000000;border-bottom:0;">
+        <tr>
+          <td style="padding:34px 64px 8px 64px;">
+            <div style="font-size:0;line-height:0;">
+              <img src="${hasLogo ? 'cid:' + logoCid : (process.env.EMAIL_LOGO_URL || '')}" alt="ODC Certif" style="height:48px;display:block;${hasLogo || process.env.EMAIL_LOGO_URL ? '' : 'display:none;'}" />
+            </div>
+            <h1 style="margin:24px 0 32px 0;font-size:32px;line-height:1.2;font-weight:700;">Réinitialisez votre mot de passe.</h1>
+            <p style="margin:0 0 16px 0;font-size:14px;">Bonjour <strong>${user.name || 'Utilisateur'}</strong>!</p>
+            <p style="margin:0 0 12px 0;font-size:14px;">Vous avez demandé à réinitialiser votre mot de passe.<br/>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe</p>
+            <p style="margin:16px 0 18px 0;font-size:13px;font-weight:600;">Ce lien est valide pendant <strong>15 minutes</strong></p>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:32px 0 8px 0;">
+              <tr>
+                <td bgcolor="${brandColor}" style="border-radius:2px;">
+                  <a href="${resetUrl}" style="display:inline-block;padding:12px 16px;font-size:14px;color:#fff;text-decoration:none;font-weight:500;background:${brandColor};">Réinitialisez votre mot de passe</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0 0;font-size:11px;color:#555;line-height:1.4;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e‑mail.</p>
+            <p style="margin:32px 0 0 0;font-size:14px;">Merci,<br/>Équipe Orange Digital Center</p>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" width="650" cellspacing="0" cellpadding="0" border="0" style="background:${brandColor};">
+        <tr>
+          <td style="padding:16px 64px;text-align:center;color:#fff;font-size:11px;">© ${(new Date()).getFullYear()} Orange Digital Center</td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
     };
 
     await transporter.sendMail(mailOptions);
