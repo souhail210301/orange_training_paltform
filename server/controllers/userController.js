@@ -276,52 +276,80 @@ const getUserByRole = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const userId = req.params.id;
-    let user = await User.findById(userId);
-    if (!user) {
+    // Load as base model; discriminators share collection so this finds any role
+  // Need password when recreating doc across discriminator boundary; select('+password')
+  let existing = await User.findById(userId).select('+password');
+    if (!existing) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // If changing to university_representative, use the discriminator model
-    let isBecomingRep = req.body.role === 'university_representative' && user.role !== 'university_representative';
-    let isRep = user.role === 'university_representative' || req.body.role === 'university_representative';
-    let repModel = require('../models/UniversityRepresentative');
+    const currentRole = existing.role;
+    const newRole = req.body.role ?? currentRole;
+    const repModel = require('../models/UniversityRepresentative');
+    const UserModel = require('../models/User');
+  const existingHashedPassword = existing.password; // hashed, keep as-is
 
-    // If user is or will be a university_representative, update university field
-    if (isRep && req.body.university !== undefined) {
-      // If not already a rep, switch model
-      if (isBecomingRep) {
-        // Remove old user, create new rep
-        await User.findByIdAndDelete(userId);
-        user = new repModel({
-          _id: userId,
-          name: req.body.name || user.name,
-          email: req.body.email || user.email,
-          phone_number: req.body.phone_number || user.phone_number,
-          role: 'university_representative',
-          university: req.body.university
-        });
-      } else {
-        user.university = req.body.university;
-      }
+    const changingToRep = newRole === 'university_representative' && currentRole !== 'university_representative';
+    const changingFromRep = currentRole === 'university_representative' && newRole !== 'university_representative';
+
+    // Validation when becoming representative
+    if (changingToRep && !req.body.university) {
+      return res.status(400).json({ message: 'university is required when changing role to university_representative' });
     }
 
-    // Update other fields
-    if (req.body.name !== undefined) user.name = req.body.name;
-    if (req.body.email !== undefined) user.email = req.body.email;
-    if (req.body.phone_number !== undefined) user.phone_number = req.body.phone_number;
-    if (req.body.role !== undefined) user.role = req.body.role;
+    // We'll replace the document only if switching discriminator type, else modify in place
+    let workingDoc = existing;
 
-    const updatedUser = await user.save();
+    if (changingToRep) {
+      // Delete old doc then recreate as discriminator to avoid mixed schema validation issues
+      await User.findByIdAndDelete(userId);
+      workingDoc = new repModel({
+        _id: userId,
+        name: req.body.name ?? existing.name,
+        email: req.body.email ?? existing.email,
+        phone_number: req.body.phone_number ?? existing.phone_number,
+        role: 'university_representative',
+        university: req.body.university,
+        password: existingHashedPassword
+      });
+    } else if (changingFromRep) {
+      // Remove old discriminator doc then recreate as plain user
+      await User.findByIdAndDelete(userId);
+      workingDoc = new UserModel({
+        _id: userId,
+        name: req.body.name ?? existing.name,
+        email: req.body.email ?? existing.email,
+        phone_number: req.body.phone_number ?? existing.phone_number,
+        role: newRole,
+        password: existingHashedPassword
+      });
+    } else {
+      // In-place updates
+      if (req.body.university !== undefined && newRole === 'university_representative') {
+        workingDoc.university = req.body.university; // only meaningful for reps
+      }
+      if (newRole) workingDoc.role = newRole; // allow role rename among non-rep roles
+      if (req.body.name !== undefined) workingDoc.name = req.body.name;
+      if (req.body.email !== undefined) workingDoc.email = req.body.email;
+      if (req.body.phone_number !== undefined) workingDoc.phone_number = req.body.phone_number;
+    }
 
-    res.json({
-      id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      phone_number: updatedUser.phone_number,
-      role: updatedUser.role,
-      university: updatedUser.university || undefined
-    });
+    try {
+      const saved = await workingDoc.save();
+      return res.json({
+        id: saved._id,
+        name: saved.name,
+        email: saved.email,
+        phone_number: saved.phone_number,
+        role: saved.role,
+        university: saved.university || undefined
+      });
+    } catch (saveErr) {
+      // Provide more diagnostic info client-side (safe subset)
+      return res.status(500).json({ message: 'Failed to save user update', error: saveErr.message });
+    }
   } catch (error) {
+    console.error('updateUser unexpected error', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

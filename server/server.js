@@ -42,6 +42,10 @@ app.use('/api/training-requests', trainingRequestRoutes);
 
 
 
+// Error logging middleware (should be after all routes)
+const logError = require('./middleware/logError');
+app.use(logError);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

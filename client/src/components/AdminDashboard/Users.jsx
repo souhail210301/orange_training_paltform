@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import deleteLogo from '../../../public/delete_logo.png';
 import disableLogo from '../../../public/disable_logo.png';
 import AdminNavbar from './AdminNavbar';
@@ -78,30 +78,30 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
     }
   }, [showModal, showEditModal]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/users', {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setUsers(data);
-          setError(null);
-        } else {
-          setError(data.message || 'Erreur lors du chargement des utilisateurs');
-        }
-      } catch (err) {
-        setError('Erreur réseau ou serveur.');
+  // Reusable users fetcher so we can refresh after create / edit operations
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/users', {
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data);
+        setError(null);
+      } else {
+        setError(data.message || 'Erreur lors du chargement des utilisateurs');
       }
-      setLoading(false);
-    };
-    fetchUsers();
+    } catch (err) {
+      setError('Erreur réseau ou serveur.');
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Popup menu state
   const [openMenu, setOpenMenu] = useState(null);
@@ -206,8 +206,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                           setShowModal(false);
                           setForm({ name: '', email: '', phone_number: '', role: '', university: '' });
                           setFormError('');
-                          // Refresh users list
-                          setUsers((prev) => [...prev, { ...form, _id: data._id || Math.random().toString(), role: form.role, phone_number: form.phone_number }]);
+                          // Refresh list from backend to get canonical state
+                          fetchUsers();
                         } else {
                           setFormError(data.message || 'Erreur lors de l\'ajout de l\'utilisateur.');
                         }
@@ -374,9 +374,16 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 setEditFormError('');
-                if (!editForm.name || !editForm.email || !editForm.phone_number || !editForm.role || (editForm.role === 'university_representative' && !editForm.university)) {
+                // Enhanced validation for university_representative
+                if (!editForm.name || !editForm.email || !editForm.phone_number || !editForm.role) {
                   setEditFormError('Veuillez remplir tous les champs obligatoires.');
                   return;
+                }
+                if (editForm.role === 'university_representative') {
+                  if (!editForm.university || editForm.university === '' || editForm.university === 'none') {
+                    setEditFormError('Veuillez sélectionner une université pour le représentant.');
+                    return;
+                  }
                 }
                 setEditFormLoading(true);
                 try {
@@ -399,8 +406,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                   if (res.ok) {
                     setShowEditModal(false);
                     setEditFormError('');
-                    // Update users list in state
-                    setUsers(prev => prev.map(u => u._id === editForm._id ? { ...u, ...editForm } : u));
+                    // Simpler & safer: refetch whole list (handles discriminator role switches cleanly)
+                    fetchUsers();
                   } else {
                     setEditFormError(data.message || "Erreur lors de la modification de l'utilisateur.");
                   }

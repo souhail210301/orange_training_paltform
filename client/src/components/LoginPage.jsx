@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import LoadingLottie from './LoadingLottie';
 
 const LoginPage = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +36,8 @@ const LoginPage = ({ onLoginSuccess }) => {
           setSuccessLoading(false);
           if (onLoginSuccess) {
             onLoginSuccess(data.user);
+          } else {
+            navigate('/admin/dashboard');
           }
         }, 1000);
         setEmail('');
@@ -117,9 +121,9 @@ const LoginPage = ({ onLoginSuccess }) => {
                 </div>
 
                 <div className="text-left">
-                  <a href="/forgot-password" className="text-orange-500 text-sm hover:text-orange-600 underline">
+                  <button type="button" onClick={() => navigate('/forgot-password')} className="text-orange-500 text-sm hover:text-orange-600 underline">
                     Mot de passe oublié?
-                  </a>
+                  </button>
                 </div>
 
                 <button

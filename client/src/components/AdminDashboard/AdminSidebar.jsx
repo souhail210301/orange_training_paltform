@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Tablet,
@@ -19,6 +20,13 @@ const navItems = [
 ];
 
 const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout, onNavigate, activePage = 'dashboard' }) => {
+  const navigate = useNavigate();
+  const handleNav = (key) => {
+    if (onNavigate) return onNavigate(key);
+    if (key === 'users') navigate('/admin/users');
+    else if (key === 'catalogue') navigate('/admin/catalogue');
+    else navigate('/admin/dashboard');
+  };
   return (
   <aside className="h-screen bg-white flex flex-col justify-between py-4 px-4 w-72 min-w-[16rem] border-r border-gray-100 fixed top-16 left-0 z-30" style={{height:'calc(100vh - 64px)'}}>
       <nav className="space-y-2">
@@ -26,7 +34,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
           <button
             key={item.key}
             className={`flex items-center w-full text-left px-4 py-3 rounded font-medium text-base transition-colors ${activePage === item.key ? 'bg-orange-500 text-white' : 'text-gray-800 hover:bg-orange-50'}`}
-            onClick={() => onNavigate && onNavigate(item.key)}
+            onClick={() => handleNav(item.key)}
           >
             {item.icon}
             {item.label}
