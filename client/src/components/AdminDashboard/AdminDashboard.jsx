@@ -272,10 +272,12 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
           <div className="mb-4">
             <div className="flex justify-between items-center">
               <h2 className="font-semibold text-gray-900">Les sessions récentes:</h2>
-              <button className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 font-medium flex items-center gap-2">
-                <span>✏️</span>
-                Modifier Le Catalogue
-              </button>
+              {user.role !== 'odc_mentor' && (
+                <button className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 font-medium flex items-center gap-2">
+                  <span>✏️</span>
+                  Modifier Le Catalogue
+                </button>
+              )}
             </div>
           </div>
 

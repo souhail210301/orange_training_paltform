@@ -34,9 +34,14 @@ function App() {
   };
 
   const handleNavigate = (page) => {
+    // Mentor restricted: cannot navigate to users
+    if (page === 'users' && user?.role === 'odc_mentor') {
+      navigate('/admin/catalogue');
+      return;
+    }
     if (page === 'users') navigate('/admin/users');
     else if (page === 'catalogue') navigate('/admin/catalogue');
-  else if (page === 'profile') navigate('/admin/profile');
+    else if (page === 'profile') navigate('/admin/profile');
     else navigate('/admin/dashboard');
   };
 
@@ -78,6 +83,11 @@ function App() {
 
   // Render admin pages
   if (activePage === 'users') {
+    if (user?.role === 'odc_mentor') {
+      // Hard redirect safeguard
+      navigate('/admin/catalogue');
+      return null;
+    }
     return <Users user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
   }
   if (activePage === 'catalogue') {

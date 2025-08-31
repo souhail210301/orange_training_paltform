@@ -101,18 +101,20 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Catalogue</h1>
             </div>
-            <button
-              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium flex items-center gap-2 transition-colors"
-              onClick={() => setShowAddPage(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Ajouter une formation
-            </button>
+            {user.role !== 'odc_mentor' && (
+              <button
+                className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 font-medium flex items-center gap-2 transition-colors"
+                onClick={() => setShowAddPage(true)}
+              >
+                <Plus className="w-5 h-5" />
+                Ajouter une formation
+              </button>
+            )}
       {/* Modal Drawer */}
   {/* Modal removed: add form is now a separate page */}
           </div>
 
-          {showAddPage || editCatalogue ? (
+          {(showAddPage || editCatalogue) && user.role !== 'odc_mentor' ? (
             <div className="w-full p-8 bg-white rounded-xl shadow text-left">
               <button onClick={() => {
                 setShowAddPage(false);
@@ -388,6 +390,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
               catalogueId={selectedCatalogueId} 
               onBack={() => setSelectedCatalogueId(null)}
               mentors={mentors}
+              role={user.role}
               onDeleted={async () => {
                 setSelectedCatalogueId(null);
                 setLoadingCatalogues(true);
@@ -396,7 +399,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                 setCatalogues(Array.isArray(refreshedData) ? refreshedData : []);
                 setLoadingCatalogues(false);
               }}
-              onEdit={cat => {
+              onEdit={user.role === 'odc_mentor' ? undefined : (cat => {
                 setEditCatalogue(cat);
                 setForm({
                   coverImage: cat.coverImage || '',
@@ -411,7 +414,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                   technologies: cat.technologies || []
                 });
                 setShowAddPage(false);
-              }}
+              })}
             />
           ) : (
             <>

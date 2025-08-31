@@ -10,14 +10,16 @@ import {
   LogOut
 } from 'lucide-react';
 
-const navItems = [
+const baseNavItems = [
   { label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-2" />, key: 'dashboard' },
   { label: 'Sessions', icon: <Tablet className="w-5 h-5 mr-2" />, key: 'sessions' },
   { label: 'Chiffres Clés', icon: <BarChart2 className="w-5 h-5 mr-2" />, key: 'stats' },
   { label: 'Calendrier', icon: <Calendar className="w-5 h-5 mr-2" />, key: 'calendar' },
   { label: 'Catalogues', icon: <List className="w-5 h-5 mr-2" />, key: 'catalogue' },
-  { label: 'Utilisateurs', icon: <Users className="w-5 h-5 mr-2" />, key: 'users' },
 ];
+
+// Users nav only for admin / prestataire / representative (not for odc_mentor)
+const withUsers = [...baseNavItems, { label: 'Utilisateurs', icon: <Users className="w-5 h-5 mr-2" />, key: 'users' }];
 
 const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout, onNavigate, activePage = 'dashboard' }) => {
   const navigate = useNavigate();
@@ -30,7 +32,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
   return (
   <aside className="h-screen bg-white flex flex-col justify-between py-4 px-4 w-72 min-w-[16rem] border-r border-gray-100 fixed top-16 left-0 z-30" style={{height:'calc(100vh - 64px)'}}>
       <nav className="space-y-2">
-        {navItems.map((item) => (
+        {(user.role === 'odc_mentor' ? baseNavItems : withUsers).map((item) => (
           <button
             key={item.key}
             className={`flex items-center w-full text-left px-4 py-3 rounded font-medium text-base transition-colors ${activePage === item.key ? 'bg-orange-500 text-white' : 'text-gray-800 hover:bg-orange-50'}`}

@@ -31,6 +31,21 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 		desktop: [true, true, false, false],
 		mobile: [false, false, false]
 	});
+	// Notifications
+	const [notifications, setNotifications] = useState([]);
+	const [notifLoading, setNotifLoading] = useState(false);
+	const loadNotifications = async () => {
+		try {
+			setNotifLoading(true);
+			const token = localStorage.getItem('token');
+			const res = await fetch('/api/notifications', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+			if (res.ok) {
+				const data = await res.json();
+				setNotifications(data);
+			}
+		} finally { setNotifLoading(false); }
+	};
+	useEffect(() => { if (activeTab === 'notifications') loadNotifications(); }, [activeTab]);
 	const togglePref = (group, idx) => setPrefs(p => ({ ...p, [group]: p[group].map((v,i)=> i===idx ? !v : v) }));
 	const Switch = ({ enabled, onClick }) => (
 		<button type="button" onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${enabled ? 'bg-blue-500' : 'bg-gray-300'}`}> 
@@ -219,7 +234,52 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 					</div>
 				);
 			case 'notifications':
-				return <div className="text-sm text-gray-600">Aucune notification configurable pour l'instant.</div>;
+				return (
+					<div>
+						<h2 className="text-2xl font-semibold mb-1">Notifications</h2>
+						<p className="text-sm text-gray-600 mb-4">Toutes vos notifications sont regroupées ici.</p>
+						{notifLoading && <div className="text-sm text-gray-500">Chargement...</div>}
+						<div className="space-y-4">
+							{notifications.map(n => {
+								const isRequest = n.type === 'TRAINING_REQUEST';
+								const canAct = isRequest && user?.role === 'admin';
+								return (
+									<div key={n._id} className="flex gap-4 p-3 border rounded hover:shadow-sm bg-white">
+										<div className="w-12 h-12 bg-orange-500 text-white flex items-center justify-center rounded">
+											<img src="/logo_orange_certif.png" alt="Logo" className="w-8 h-8 object-contain" />
+										</div>
+										<div className="flex-1">
+											<div className="text-sm font-semibold mb-1">{n.title}</div>
+											{n.body && <div className="text-xs text-gray-600 mb-2">{n.body}</div>}
+											{canAct && (
+												<div className="flex gap-2">
+													<button className="px-3 py-1 bg-green-500 text-white text-xs rounded" onClick={async ()=>{
+														const token = localStorage.getItem('token');
+														await fetch(`/api/training-requests/${n.trainingRequest}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'APPROVED' }) });
+														loadNotifications();
+													}}>
+														Approuver
+													</button>
+													<button className="px-3 py-1 bg-red-500 text-white text-xs rounded" onClick={async ()=>{
+														const token = localStorage.getItem('token');
+														await fetch(`/api/training-requests/${n.trainingRequest}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'REJECTED' }) });
+														loadNotifications();
+													}}>
+														Refuser
+													</button>
+												</div>
+											)}
+										</div>
+										<div className="flex items-start pt-1">
+											<span className={`w-2 h-2 rounded-full mt-1 ${n.read ? 'bg-gray-300' : 'bg-orange-500'}`}></span>
+										</div>
+									</div>
+								);
+							})}
+							{!notifLoading && notifications.length === 0 && <div className="text-sm text-gray-500">Aucune notification.</div>}
+						</div>
+					</div>
+				);
 			case 'settings':
 				return (
 					<div className="space-y-10">

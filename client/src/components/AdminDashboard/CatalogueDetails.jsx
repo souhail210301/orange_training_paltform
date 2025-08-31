@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from 'react';
 
-const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit }) => {
+const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit, role }) => {
   const [catalogue, setCatalogue] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [week1From, setWeek1From] = useState('');
+  const [week1To, setWeek1To] = useState('');
+  const [week2From, setWeek2From] = useState('');
+  const [week2To, setWeek2To] = useState('');
+  const [altDateEnabled, setAltDateEnabled] = useState(false);
+  const [altDate, setAltDate] = useState('');
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const [requestSuccess, setRequestSuccess] = useState(false);
 
   useEffect(() => {
     if (!catalogueId) return;
@@ -25,12 +35,17 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit }) =
     <div className="w-full p-8 bg-white rounded-xl shadow">
       <div className="flex items-center justify-between mb-6">
         <button onClick={onBack} className="text-orange-500 hover:underline">&larr; Retour</button>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600" onClick={() => onEdit && onEdit(catalogue)}>Modifier</button>
-          <button className="px-4 py-2 rounded bg-red-500 text-white font-medium hover:bg-red-600" onClick={() => setShowDeleteModal(true)}>Supprimer</button>
-        </div>
+        {role !== 'odc_mentor' && (
+          <div className="flex gap-2">
+            <button className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600" onClick={() => onEdit && onEdit(catalogue)}>Modifier</button>
+            <button className="px-4 py-2 rounded bg-red-500 text-white font-medium hover:bg-red-600" onClick={() => setShowDeleteModal(true)}>Supprimer</button>
+          </div>
+        )}
+        {role === 'odc_mentor' && (!catalogue.trainers || catalogue.trainers.length === 0) && (
+          <button className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600" onClick={() => setShowRequestModal(true)}>Demander une session</button>
+        )}
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
+  {showDeleteModal && role !== 'odc_mentor' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative flex flex-col items-center">
             <h2 className="text-lg font-bold mb-6 text-center">Confirmer la suppression</h2>
@@ -109,6 +124,109 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit }) =
         <div><span className="font-semibold">Type:</span> <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-sm font-medium">{catalogue.type}</span></div>
         <div><span className="font-semibold">Technologies:</span> {catalogue.technologies && catalogue.technologies.map((t, i) => <span key={i} className="bg-orange-500 text-white px-2 py-1 rounded text-sm font-medium ml-1">{t}</span>)}</div>
       </div>
+      {showRequestModal && role === 'odc_mentor' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl relative">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold">{catalogue.title}</h2>
+              <button onClick={() => setShowRequestModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <p className="text-gray-600 mb-6">Choisissez au moins une semaine disponible pour organiser la session de formation</p>
+            <div className="grid grid-cols-2 gap-8">
+              <div>
+                <h3 className="font-semibold mb-2">Semaine 1:</h3>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm mb-1">De</label>
+                    <input type="date" value={week1From} onChange={e => setWeek1From(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Jusqu'à</label>
+                    <input type="date" value={week1To} onChange={e => setWeek1To(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">Semaine 2:</h3>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm mb-1">De</label>
+                    <input type="date" value={week2From} onChange={e => setWeek2From(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Jusqu'à</label>
+                    <input type="date" value={week2To} onChange={e => setWeek2To(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4 text-sm">
+              Tu veux améliorer la chance d'acceptation? {' '}
+              <button type="button" onClick={() => setAltDateEnabled(!altDateEnabled)} className="text-orange-600 font-medium underline">
+                Proposez une autre date
+              </button>
+            </div>
+            {altDateEnabled && (
+              <div className="mb-6">
+                <label className="block text-sm mb-1">Date alternative</label>
+                <input type="date" value={altDate} onChange={e => setAltDate(e.target.value)} className="border rounded px-3 py-2" />
+              </div>
+            )}
+            {requestError && <div className="text-red-500 text-sm mb-4">{requestError}</div>}
+            {requestSuccess && <div className="text-green-600 text-sm mb-4">Demande envoyée.</div>}
+            <div className="flex justify-end gap-4 mt-4">
+              <button className="px-4 py-2 rounded bg-gray-200" onClick={() => setShowRequestModal(false)} disabled={requestSubmitting}>Annuler</button>
+              <button
+                className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:opacity-50"
+                disabled={requestSubmitting}
+                onClick={async () => {
+                  setRequestError('');
+                  setRequestSuccess(false);
+                  if (!week1From || !week1To) {
+                    setRequestError('Veuillez fournir au moins la première semaine.');
+                    return;
+                  }
+                  const payload = {
+                    request_type: 'NEW',
+                    catalogue: catalogue._id,
+                    requested_weeks: [
+                      { from: week1From, to: week1To },
+                      ...(week2From && week2To ? [{ from: week2From, to: week2To }] : [])
+                    ]
+                  };
+                  if (altDateEnabled && altDate) payload.alternative_date = altDate;
+                  try {
+                    setRequestSubmitting(true);
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/training-requests', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: token ? `Bearer ${token}` : undefined
+                      },
+                      body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                      const d = await res.json();
+                      throw new Error(d.message || 'Erreur lors de la demande');
+                    }
+                    setRequestSuccess(true);
+                    setTimeout(() => {
+                      setShowRequestModal(false);
+                      setRequestSuccess(false);
+                      setWeek1From(''); setWeek1To(''); setWeek2From(''); setWeek2To(''); setAltDate(''); setAltDateEnabled(false);
+                    }, 1200);
+                  } catch (e) {
+                    setRequestError(e.message);
+                  } finally {
+                    setRequestSubmitting(false);
+                  }
+                }}
+              >{requestSubmitting ? 'Envoi...' : 'Réserver'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
