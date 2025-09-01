@@ -13,9 +13,10 @@ const router = express.Router()
 router.get('/', getCatalogues)
 router.get('/:id', getCatalogueById)
 
-router.post('/', createCatalogue)
-router.put('/:id', updateCatalogue)
-router.delete('/:id', deleteCatalogue)
+// Allow admins, university reps to create/update/delete catalogues; mentors view only
+router.post('/', protect, createCatalogue)
+router.put('/:id', protect, updateCatalogue) // Ensure proper controller function used
+router.delete('/:id', protect, deleteCatalogue)
 
 module.exports = router
 

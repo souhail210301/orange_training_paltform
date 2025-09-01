@@ -147,18 +147,18 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                   try {
                     const data = { ...form };
                     data.technologies = data.technologies.filter(Boolean);
-                    // Trainer is now optional
                     let res, result;
-                    if (editCatalogue) {
+          const token = localStorage.getItem('token');
+          if (editCatalogue) {
                       res = await fetch(`/api/catalogues/${editCatalogue._id}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
                         body: JSON.stringify(data)
                       });
                     } else {
                       res = await fetch('/api/catalogues', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
                         body: JSON.stringify(data)
                       });
                     }
@@ -166,177 +166,211 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                     if (!res.ok) throw new Error(result.message || 'Erreur lors de la sauvegarde');
                     setShowAddPage(false);
                     setEditCatalogue(null);
-                    // No need to refresh catalogue list here; handled by useEffect
                   } catch (err) {
                     setError(err.message);
                   } finally {
                     setLoading(false);
                   }
                 }}
-                className="space-y-6 max-w-2xl text-left"
+                className="space-y-10 w-full text-left"
               >
-                {/* Cover Image */}
-                <div className="mb-4 flex flex-col items-start">
-                  <label className="block font-medium mb-1">Photo de couverture</label>
-                  <div
-                    className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer border border-gray-200 mb-2"
-                    onClick={() => setShowImageUpload(true)}
-                  >
-                    {form.coverImage ? (
-                      <img src={form.coverImage} alt="cover" className="w-24 h-24 object-cover rounded-full" />
-                    ) : (
-                      <span className="text-gray-400 text-3xl">📷</span>
-                    )}
+                {/* Top Grid: Cover + Title + Trainer */}
+                <div className="grid grid-cols-12 gap-6 items-start">
+                  <div className="col-span-12 md:col-span-2">
+                    <label className="block font-medium mb-2">Photo de couverture</label>
+                    <div
+                      className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer border border-gray-200"
+                      onClick={() => setShowImageUpload(true)}
+                    >
+                      {form.coverImage ? (
+                        <img src={form.coverImage} alt="cover" className="w-24 h-24 object-cover rounded-full" />
+                      ) : (
+                        <img src="/camera_icon.png" alt="Choisir une image" className="w-10 h-10 opacity-60" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-12 md:col-span-10">
+                    <label className="block font-medium mb-2">Titre</label>
+                    <input
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Nom de votre formation"
+                      value={form.title}
+                      onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                      required
+                    />
+                    <div className="mt-6">
+                      <label className="block font-medium mb-2">Formateur</label>
+                      <select
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                        value={form.trainers[0] || ''}
+                        onChange={e => setForm(f => ({ ...f, trainers: e.target.value ? [e.target.value] : [] }))}
+                      >
+                        <option value="">Aucun formateur</option>
+                        {mentors.map(m => (
+                          <option key={m._id} value={m._id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* Image Upload Modal */}
+                {/* Image Upload / Crop Modals */}
                 {showImageUpload && (
                   <ImageUploadCard
                     onImageSelected={file => {
                       setShowImageUpload(false);
                       if (file) {
                         const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setImageToCrop(reader.result);
-                        };
+                        reader.onloadend = () => setImageToCrop(reader.result);
                         reader.readAsDataURL(file);
                       }
                     }}
                   />
                 )}
-                {/* Image Cropper Modal */}
                 {imageToCrop && (
                   <ImageCropperModal
                     image={imageToCrop}
                     onCancel={() => setImageToCrop(null)}
-                    onConfirm={cropped => {
-                      setForm(f => ({ ...f, coverImage: cropped }));
-                      setImageToCrop(null);
-                    }}
+                    onConfirm={cropped => { setForm(f => ({ ...f, coverImage: cropped })); setImageToCrop(null); }}
                   />
                 )}
-                {/* Title */}
-                <div className="mb-4 flex flex-col items-start">
-                  <label className="block font-medium mb-1">Nom de la formation</label>
-                  <input
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                    placeholder="Nom de votre formation"
-                    value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    required
-                  />
-                </div>
-                {/* Trainers */}
-                <div className="mb-4 flex flex-col items-start">
-                  <label className="block font-medium mb-1">Formateur</label>
-                  <select
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                    value={form.trainers[0] || ''}
-                    onChange={e => {
-                      setForm(f => ({ ...f, trainers: e.target.value ? [e.target.value] : [] }));
-                    }}
-                  >
-                    <option value="">Aucun formateur</option>
-                    {mentors.map(m => (
-                      <option key={m._id} value={m._id}>{m.name} ({m.email})</option>
-                    ))}
-                  </select>
-                </div>
+
                 {/* Objectives */}
                 <div>
-                  <label className="block font-medium mb-1">Objectifs Pédagogiques de la Formation</label>
+                  <label className="block font-medium mb-2">Objectifs Pédagogiques de la Formation</label>
                   <textarea
-                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                     placeholder="Les objectifs de la formation"
+                    rows={3}
                     value={form.objectives}
                     onChange={e => setForm(f => ({ ...f, objectives: e.target.value }))}
                   />
                 </div>
-                {/* Program */}
-                <div>
-                  <label className="block font-medium mb-1">Programme de la formation</label>
+
+                {/* Program Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-medium">Programme de la formation:</label>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-sm bg-orange-500 text-white px-3 py-1 rounded"
+                      onClick={() => setForm(f => ({ ...f, program: [...f.program, { description: '', sessions: [{ from: '', to: '', description: '' }] }] }))}
+                    >
+                      <img src="/add_button_icon.png" alt="" className="w-4 h-4" />
+                      Ajouter Un Jour
+                    </button>
+                  </div>
                   {form.program.map((day, i) => (
-                    <div key={i} className="mb-4 border rounded p-3 bg-gray-50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">Jour {i + 1}</span>
-                        <button type="button" className="text-red-500 text-xs" onClick={() => setForm(f => ({ ...f, program: f.program.filter((_, idx) => idx !== i) }))} disabled={form.program.length === 1}>Supprimer</button>
-                      </div>
+                    <div key={i} className="space-y-3">
+                      <div className="font-semibold text-sm">Jour {i + 1}:</div>
                       <input
-                        className="w-full border border-gray-300 rounded px-3 py-2 mb-2"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                         placeholder="Description du programme du jour"
                         value={day.description}
                         onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, description: e.target.value } : d) }))}
                       />
-                      {day.sessions.map((session, j) => (
-                        <div key={j} className="flex gap-2 mb-2">
-                          <input
-                            type="time"
-                            className="border border-gray-300 rounded px-2 py-1"
-                            value={session.from}
-                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, from: e.target.value } : s) } : d) }))}
-                          />
-                          <input
-                            type="time"
-                            className="border border-gray-300 rounded px-2 py-1"
-                            value={session.to}
-                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, to: e.target.value } : s) } : d) }))}
-                          />
-                          <input
-                            className="flex-1 border border-gray-300 rounded px-2 py-1"
-                            placeholder="Description de la session"
-                            value={session.description}
-                            onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, description: e.target.value } : s) } : d) }))}
-                          />
-                          <button type="button" className="text-red-500" onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.filter((_, k) => k !== j) } : d) }))} disabled={day.sessions.length === 1}>🗑️</button>
-                          {j === day.sessions.length - 1 && (
-                            <button type="button" className="text-orange-500" onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: [...d.sessions, { from: '', to: '', description: '' }] } : d) }))}>+</button>
-                          )}
+                      {/* Header Row */}
+                      <div className="grid grid-cols-[90px_90px_1fr_32px] bg-orange-600 text-white text-xs font-medium rounded-t">
+                        <div className="py-2 px-2">De</div>
+                        <div className="py-2 px-2">Jusqu'à</div>
+                        <div className="py-2 px-2">Description</div>
+                        <div className="py-2 px-1 flex justify-center">
+                          <button
+                            type="button"
+                            aria-label="Ajouter une session"
+                            onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: [...d.sessions, { from: '', to: '', description: '' }] } : d) }))}
+                          >
+                            <img src="/add_button_icon.png" alt="" className="w-4 h-4" />
+                          </button>
                         </div>
-                      ))}
+                      </div>
+                      {/* Sessions */}
+                      <div className="space-y-1">
+                        {day.sessions.map((session, j) => (
+                          <div key={j} className="grid grid-cols-[90px_90px_1fr_32px] items-center border border-t-0 rounded-b last:rounded-b overflow-hidden">
+                            <div className="p-1">
+                              <input
+                                type="time"
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                                value={session.from}
+                                onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, from: e.target.value } : s) } : d) }))}
+                              />
+                            </div>
+                            <div className="p-1">
+                              <input
+                                type="time"
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                                value={session.to}
+                                onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, to: e.target.value } : s) } : d) }))}
+                              />
+                            </div>
+                            <div className="p-1">
+                              <input
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                                placeholder="Description de la session"
+                                value={session.description}
+                                onChange={e => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.map((s, k) => k === j ? { ...s, description: e.target.value } : s) } : d) }))}
+                              />
+                            </div>
+                            <div className="p-1 flex justify-center">
+                              <button
+                                type="button"
+                                aria-label="Supprimer la session"
+                                disabled={day.sessions.length === 1}
+                                onClick={() => setForm(f => ({ ...f, program: f.program.map((d, idx) => idx === i ? { ...d, sessions: d.sessions.filter((_, k) => k !== j) } : d) }))}
+                                className="disabled:opacity-40"
+                              >
+                                <img src="/trash_button_icon.png" alt="Supprimer" className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
-                  <button type="button" className="bg-orange-500 text-white px-3 py-1 rounded" onClick={() => setForm(f => ({ ...f, program: [...f.program, { description: '', sessions: [ { from: '', to: '', description: '' } ] }] }))}>+ Ajouter Un Jour</button>
                 </div>
+
                 {/* Prerequisites */}
                 <div>
-                  <label className="block font-medium mb-1">Pré-requis</label>
+                  <label className="block font-medium mb-2">Pré-requis</label>
                   <textarea
-                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                     placeholder="Les prérequis de la formation"
                     value={form.prerequisites}
                     onChange={e => setForm(f => ({ ...f, prerequisites: e.target.value }))}
                   />
                 </div>
+
                 {/* Language */}
                 <div>
-                  <label className="block font-medium mb-1">Langue</label>
+                  <label className="block font-medium mb-2">Langue</label>
                   <input
-                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                     placeholder="Insérer la langue de la formation"
                     value={form.language}
                     onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
                   />
                 </div>
+
                 {/* Level & Type */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block font-medium mb-1">Niveau de la formation</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block font-medium mb-2">Niveau</label>
                     <select
-                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                       value={form.level}
                       onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
                     >
-                      <option value="">Niveau de la formation</option>
+                      <option value="">Basique</option>
                       <option value="Niveau Basique">Niveau Basique</option>
                       <option value="Niveau Intermédiaire">Niveau Intermédiaire</option>
                       <option value="Niveau Avancé">Niveau Avancé</option>
                     </select>
                   </div>
-                  <div className="flex-1">
-                    <label className="block font-medium mb-1">Type de la formation</label>
+                  <div>
+                    <label className="block font-medium mb-2">Type</label>
                     <select
-                      className="w-full border border-gray-300 rounded px-3 py-2"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                       value={form.type}
                       onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                     >
@@ -348,12 +382,13 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                     </select>
                   </div>
                 </div>
+
                 {/* Technologies */}
                 <div>
-                  <label className="block font-medium mb-1">Technologies</label>
+                  <label className="block font-medium mb-2">Technologies:</label>
                   <div className="flex gap-2 mb-2">
                     <input
-                      className="flex-1 border border-gray-300 rounded px-3 py-2"
+                      className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
                       placeholder="Ajouter une technologie"
                       value={techInput}
                       onChange={e => setTechInput(e.target.value)}
@@ -365,23 +400,41 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                         }
                       }}
                     />
-                    <button type="button" className="bg-orange-500 text-white px-3 py-2 rounded" onClick={() => { if (techInput && form.technologies.length < 10) { setForm(f => ({ ...f, technologies: [...f.technologies, techInput] })); setTechInput(''); } }}>Ajouter</button>
+                    <button
+                      type="button"
+                      className="bg-orange-500 text-white px-3 py-2 rounded text-sm"
+                      onClick={() => { if (techInput && form.technologies.length < 10) { setForm(f => ({ ...f, technologies: [...f.technologies, techInput] })); setTechInput(''); } }}
+                    >Ajouter</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {form.technologies.map((tech, idx) => (
-                      <span key={idx} className="bg-gray-200 px-2 py-1 rounded text-sm flex items-center gap-1">
+                      <span key={idx} className="bg-orange-50 border border-orange-200 text-orange-700 px-2 py-1 rounded text-xs flex items-center gap-1">
                         {tech}
-                        <button type="button" className="text-red-500 ml-1" onClick={() => setForm(f => ({ ...f, technologies: f.technologies.filter((_, i) => i !== idx) }))}>×</button>
+                        <button
+                          type="button"
+                          className="text-orange-600 hover:text-orange-800"
+                          onClick={() => setForm(f => ({ ...f, technologies: f.technologies.filter((_, i) => i !== idx) }))}
+                        >×</button>
                       </span>
                     ))}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Sélectionner jusqu'à 10 tags</div>
                 </div>
+
                 {/* Error & Actions */}
                 {error && <div className="text-red-500 text-sm">{error}</div>}
-                <div className="flex justify-end gap-2">
-                  <button type="button" className="px-4 py-2 rounded bg-gray-200" onClick={() => { setShowAddPage(false); setEditCatalogue(null); }} disabled={loading}>Annuler</button>
-                  <button type="submit" className="px-4 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600" disabled={loading}>{loading ? (editCatalogue ? 'Modification...' : 'Ajout...') : (editCatalogue ? 'Modifier' : 'Ajouter')}</button>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded bg-gray-200 text-sm"
+                    onClick={() => { setShowAddPage(false); setEditCatalogue(null); }}
+                    disabled={loading}
+                  >Annuler</button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded bg-orange-500 text-white font-medium hover:bg-orange-600 text-sm disabled:opacity-60"
+                    disabled={loading}
+                  >{loading ? (editCatalogue ? 'Modification...' : 'Ajout...') : (editCatalogue ? 'Modifier' : 'Ajouter')}</button>
                 </div>
               </form>
             </div>
@@ -391,6 +444,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
               onBack={() => setSelectedCatalogueId(null)}
               mentors={mentors}
               role={user.role}
+              currentUserId={user._id}
               onDeleted={async () => {
                 setSelectedCatalogueId(null);
                 setLoadingCatalogues(true);
@@ -400,6 +454,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                 setLoadingCatalogues(false);
               }}
               onEdit={user.role === 'odc_mentor' ? undefined : (cat => {
+                if (user.role === 'university_representative' && cat.created_by && cat.created_by !== user._id) return; // ownership guard client-side
                 setEditCatalogue(cat);
                 setForm({
                   coverImage: cat.coverImage || '',

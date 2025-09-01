@@ -25,9 +25,10 @@ const LoginPage = ({ onLoginSuccess }) => {
       const data = await res.json();
       setLoading(false);
       if (res.ok && data.user && data.token) {
-        // Allow admins and mentors to access the interface; block other roles
-        if (!['admin', 'odc_mentor'].includes(data.user.role)) {
-          setError("Accès réservé aux administrateurs et mentors.");
+        // Allow admins, mentors, and university representatives to access the interface; block other roles
+        const allowedRoles = ['admin', 'odc_mentor', 'university_representative'];
+        if (!allowedRoles.includes(data.user.role)) {
+          setError("Accès réservé aux administrateurs, mentors et représentants universitaires.");
           return;
         }
         // Store token in localStorage for authenticated requests

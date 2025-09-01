@@ -72,6 +72,20 @@ const updateTrainingRequestStatus = async (req, res) => {
       { new: true, runValidators: true }
     )
     if (!updated) return res.status(404).json({ message: 'Training request not found' })
+    // If approved and linked to a catalogue, add mentor as trainer
+    if (status === 'APPROVED' && updated.catalogue && updated.requested_by) {
+      try {
+        const Catalogue = require('../models/Catalogue')
+        await Catalogue.findByIdAndUpdate(
+          updated.catalogue,
+          { $addToSet: { trainers: updated.requested_by } },
+          { new: true }
+        )
+      } catch (e) {
+        // Log silently; do not fail entire request
+        console.error('Failed adding mentor to catalogue trainers', e.message)
+      }
+    }
     // Notify requester
     if (updated.requested_by) {
       await Notification.create({

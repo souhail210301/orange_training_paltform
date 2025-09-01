@@ -34,6 +34,26 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	// Notifications
 	const [notifications, setNotifications] = useState([]);
 	const [notifLoading, setNotifLoading] = useState(false);
+	const [now, setNow] = useState(Date.now()); // for relative time refresh
+	useEffect(() => { const id = setInterval(()=> setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
+	const relativeTime = (dateStr) => {
+		if (!dateStr) return '';
+		const diff = Math.floor((now - new Date(dateStr).getTime()) / 1000);
+		if (diff < 5) return "À l'instant";
+		if (diff < 60) return `Il y a ${diff} seconde${diff>1?'s':''}`;
+		const m = Math.floor(diff/60);
+		if (m < 60) return `Il y a ${m} minute${m>1?'s':''}`;
+		const h = Math.floor(m/60);
+		if (h < 24) return `Il y a ${h} heure${h>1?'s':''}`;
+		const d = Math.floor(h/24);
+		if (d < 7) return `Il y a ${d} jour${d>1?'s':''}`;
+		const w = Math.floor(d/7);
+		if (w < 4) return `Il y a ${w} semaine${w>1?'s':''}`;
+		const mo = Math.floor(d/30);
+		if (mo < 12) return `Il y a ${mo} mois`;
+		const y = Math.floor(d/365);
+		return `Il y a ${y} an${y>1?'s':''}`;
+	};
 	const loadNotifications = async () => {
 		try {
 			setNotifLoading(true);
@@ -44,6 +64,13 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 				setNotifications(data);
 			}
 		} finally { setNotifLoading(false); }
+	};
+	const markRead = async (id) => {
+		setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+		try {
+			const token = localStorage.getItem('token');
+			await fetch(`/api/notifications/${id}/read`, { method: 'PATCH', headers: { Authorization: token ? `Bearer ${token}` : '' } });
+		} catch { /* silent */ }
 	};
 	useEffect(() => { if (activeTab === 'notifications') loadNotifications(); }, [activeTab]);
 	const togglePref = (group, idx) => setPrefs(p => ({ ...p, [group]: p[group].map((v,i)=> i===idx ? !v : v) }));
@@ -240,38 +267,87 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 						<p className="text-sm text-gray-600 mb-4">Toutes vos notifications sont regroupées ici.</p>
 						{notifLoading && <div className="text-sm text-gray-500">Chargement...</div>}
 						<div className="space-y-4">
-							{notifications.map(n => {
+							{notifications.map(raw => {
+								let n = raw;
+								const trObj = typeof n.trainingRequest === 'object' ? n.trainingRequest : null;
+								if (n.type === 'TRAINING_REQUEST' && trObj && trObj.status && trObj.status !== 'PENDING') {
+									const actorName = n.actor?.name || 'le formateur';
+									if (trObj.status === 'APPROVED') {
+										n = { ...n, title: 'Formation approuvée', body: `La formation a été approuvée et affectée à ${actorName}.`, finalStatus: 'APPROVED' };
+									} else if (trObj.status === 'REJECTED') {
+										n = { ...n, title: 'Formation rejetée', body: 'La formation a été rejetée.', finalStatus: 'REJECTED' };
+									}
+								}
 								const isRequest = n.type === 'TRAINING_REQUEST';
-								const canAct = isRequest && user?.role === 'admin';
-								return (
-									<div key={n._id} className="flex gap-4 p-3 border rounded hover:shadow-sm bg-white">
+								const trStatus = trObj?.status;
+								const canAct = isRequest && user?.role === 'admin' && trStatus === 'PENDING' && !n.finalStatus;
+									return (
+										<div key={n._id} onClick={() => { if (!n.read) markRead(n._id); }} className="flex gap-4 p-3 border rounded hover:shadow-sm bg-white cursor-pointer">
 										<div className="w-12 h-12 bg-orange-500 text-white flex items-center justify-center rounded">
 											<img src="/logo_orange_certif.png" alt="Logo" className="w-8 h-8 object-contain" />
 										</div>
 										<div className="flex-1">
 											<div className="text-sm font-semibold mb-1">{n.title}</div>
-											{n.body && <div className="text-xs text-gray-600 mb-2">{n.body}</div>}
+											{n.body && <div className="text-xs text-gray-600 mb-1">{n.body}</div>}
+											<div className="text-[11px] text-gray-400">{relativeTime(n.createdAt)}</div>
 											{canAct && (
 												<div className="flex gap-2">
-													<button className="px-3 py-1 bg-green-500 text-white text-xs rounded" onClick={async ()=>{
+													<button className={`px-3 py-1 bg-green-500 text-white text-xs rounded transition-opacity ${n.finalStatus ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} onClick={async ()=>{
+														if (n.finalStatus) return; // already processed
+														const actorName = n.actor?.name || 'le formateur';
+														// Optimistic update
+														setNotifications(prev => prev.map(nn => nn._id === n._id ? { ...nn, title: 'Formation approuvée', body: `La formation a été approuvée et affectée à ${actorName}.`, finalStatus: 'APPROVED' } : nn));
 														const token = localStorage.getItem('token');
-														await fetch(`/api/training-requests/${n.trainingRequest}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'APPROVED' }) });
-														loadNotifications();
+														const trId = typeof n.trainingRequest === 'object' ? n.trainingRequest._id : n.trainingRequest;
+														const res = await fetch(`/api/training-requests/${trId}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'APPROVED' }) });
+														if (!res.ok) {
+															// Revert if failed
+															loadNotifications();
+														}
 													}}>
 														Approuver
 													</button>
-													<button className="px-3 py-1 bg-red-500 text-white text-xs rounded" onClick={async ()=>{
+													<button className={`px-3 py-1 bg-red-500 text-white text-xs rounded transition-opacity ${n.finalStatus ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} onClick={async ()=>{
+														if (n.finalStatus) return;
+														setNotifications(prev => prev.map(nn => nn._id === n._id ? { ...nn, title: 'Formation rejetée', body: 'La formation a été rejetée.', finalStatus: 'REJECTED' } : nn));
 														const token = localStorage.getItem('token');
-														await fetch(`/api/training-requests/${n.trainingRequest}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'REJECTED' }) });
-														loadNotifications();
+														const trId = typeof n.trainingRequest === 'object' ? n.trainingRequest._id : n.trainingRequest;
+														const res = await fetch(`/api/training-requests/${trId}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ status: 'REJECTED' }) });
+														if (!res.ok) {
+															loadNotifications();
+														}
 													}}>
 														Refuser
 													</button>
 												</div>
 											)}
+												{n.type === 'MENTOR_INVITE' && (!n.inviteStatus || n.inviteStatus === 'PENDING') && (
+													<div className="flex gap-3 mt-2">
+														<button
+															className="px-3 py-1 rounded bg-orange-500 text-white text-xs"
+															onClick={async () => {
+																const token = localStorage.getItem('token');
+																const res = await fetch(`/api/notifications/${n._id}/respond-invite`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ decision: 'ACCEPTED' }) });
+																if (res.ok) {
+																	setNotifications(prev => prev.map(nn => nn._id === n._id ? { ...nn, inviteStatus: 'ACCEPTED', type: 'MENTOR_INVITE_RESPONSE', title: 'Invitation acceptée', body: 'Vous avez accepté cette invitation.' } : nn));
+																}
+															}}
+														>Accepter</button>
+														<button
+															className="px-3 py-1 rounded bg-gray-200 text-gray-800 text-xs"
+															onClick={async () => {
+																const token = localStorage.getItem('token');
+																const res = await fetch(`/api/notifications/${n._id}/respond-invite`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ decision: 'DECLINED' }) });
+																if (res.ok) {
+																	setNotifications(prev => prev.map(nn => nn._id === n._id ? { ...nn, inviteStatus: 'DECLINED', type: 'MENTOR_INVITE_RESPONSE', title: 'Invitation refusée', body: 'Vous avez refusé cette invitation.' } : nn));
+																}
+															}}
+														>Refuser</button>
+													</div>
+												)}
 										</div>
-										<div className="flex items-start pt-1">
-											<span className={`w-2 h-2 rounded-full mt-1 ${n.read ? 'bg-gray-300' : 'bg-orange-500'}`}></span>
+											<div className="flex items-start pt-1">
+												<span className={`w-2 h-2 rounded-full mt-1 transition-colors ${n.read ? 'bg-gray-300' : 'bg-red-500'}`}></span>
 										</div>
 									</div>
 								);

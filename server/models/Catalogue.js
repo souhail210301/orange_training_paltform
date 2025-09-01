@@ -17,6 +17,7 @@ const catalogueSchema = new mongoose.Schema({
   coverImage: { type: String }, // URL or base64
   title: { type: String, required: true },
   trainers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   objectives: { type: String },
   program: [daySchema],
   prerequisites: { type: String },
