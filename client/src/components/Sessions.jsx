@@ -22,15 +22,23 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	const [detailTab, setDetailTab] = useState('SUMMARY'); // SUMMARY | DATE
 	const [rangeDraft, setRangeDraft] = useState({ start: null, end: null });
 	const [scheduling, setScheduling] = useState(false);
+	const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
 
 	// Reset / initialize date range when selected session changes
 	useEffect(()=>{
 		if(!selected){
 			setRangeDraft({ start:null, end:null });
+			setRejectionReasonDraft('');
 			return;
 		}
 		const start = selected.start_date || selected.scheduled_at;
 		const end = selected.end_date || selected.scheduled_end;
+		// Prefill rejection reason draft if session already rejected
+		if(selected.status==='REJECTED'){
+			setRejectionReasonDraft(selected.rejection_reason || '');
+		}else{
+			setRejectionReasonDraft('');
+		}
 		if(start && end){
 			setRangeDraft({ start: new Date(start), end: new Date(end) });
 		}else{
@@ -105,8 +113,10 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		const token = localStorage.getItem('token');
 		// capture previous status before optimistic update
 		const prevStatus = sessions.find(x=>x._id===id)?.status;
-		const prev = sessions; setSessions(s=>s.map(x=>x._id===id?{...x,status}:x));
-		const res = await fetch(`/api/sessions/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json',Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify({status}) });
+		const prev = sessions; setSessions(s=>s.map(x=>x._id===id?{...x,status, rejection_reason: status==='REJECTED'? rejectionReasonDraft: s.rejection_reason }:x));
+		const body = { status };
+		if(status==='REJECTED' && rejectionReasonDraft.trim()) body.rejection_reason = rejectionReasonDraft.trim();
+		const res = await fetch(`/api/sessions/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json',Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify(body) });
 		if(res.ok){
 			const upd = await res.json();
 			setSessions(s=> s.map(x=> x._id===id? { ...x, ...upd }: x));
@@ -237,7 +247,18 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 							{/* Body container */}
 							<div className="w-full bg-white border border-t-0 border-[#E4E4E7] rounded-b-lg overflow-hidden" style={{minHeight:'200px'}}>
 								{loading && <div className="p-6 text-sm text-gray-500">Chargement...</div>}
-								{!loading && pageItems.length===0 && <div className="p-6 text-sm text-gray-500">Aucune session.</div>}
+								{!loading && pageItems.length===0 && (
+									<div className="flex flex-col items-center justify-center text-center gap-8 py-20" style={{minHeight:'420px'}}>
+										<img src="/empty_session_logo.png" alt="Empty sessions" className="w-[210px] h-[210px] object-contain" />
+										<div className="flex flex-col items-center gap-3 max-w-[460px]">
+											<h3 className="text-[20px] font-medium text-[#050505]">Aucune session programmée pour le moment</h3>
+											<p className="text-[14px] leading-snug text-[#050505]">Vous pouvez ajouter une formation manuellement ou attendre la programmation des sessions par les universités.</p>
+											{user?.role==='admin' && (
+												<button className="mt-2 bg-[#F16E00] hover:bg-orange-600 text-white text-[14px] font-normal px-4 py-2 rounded" onClick={()=>{/* TODO: open creation modal */}}>Ajouter une session</button>
+											)}
+										</div>
+									</div>
+								)}
 								{!loading && pageItems.map((s,idx)=>{
 									const from = s.scheduled_at ? new Date(s.scheduled_at) : (s.proposed_dates?.[0]?.from ? new Date(s.proposed_dates[0].from):null);
 									const to = s.scheduled_end ? new Date(s.scheduled_end) : (s.proposed_dates?.[0]?.to ? new Date(s.proposed_dates[0].to):null);
@@ -404,6 +425,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 										const start = base.start_date || base.scheduled_at;
 										const end = base.end_date || base.scheduled_end;
 										const participantsCount = Array.isArray(base.participants)? base.participants.length : 0;
+										const isRejected = base.status==='REJECTED';
+										const rejectionReason = base.rejection_reason;
 										return (
 											<>
 												<h2 className="text-[20px] font-medium leading-snug text-[#050505]">{title}</h2>
@@ -424,6 +447,12 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 														<button className="w-full bg-[#F16E00] text-white rounded text-[16px] py-2">Voir la liste des participants</button>
 													</div>
 												)}
+												{isRejected && (
+													<div className="mt-6 flex flex-col gap-2">
+														<h3 className="text-[20px] font-medium text-[#050505]">Message de rejet:</h3>
+														<div className="bg-[#FFF1F1] border border-[#FFC4C4] rounded p-4 text-[16px] leading-snug text-black whitespace-pre-line min-h-[60px]">{rejectionReason || '—'}</div>
+													</div>
+												)}
 											</>
 										);
 									})()}
@@ -432,17 +461,26 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 									<div className="flex gap-8 w-full">
 										{user?.role==='admin' && selected.status==='PENDING' && (
 											<>
-												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED'}:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Rejeter</button>
+												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED', rejection_reason: rejectionReasonDraft }:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Rejeter</button>
 												<button onClick={confirmCurrent} className="flex-1 bg-[#F16E00] rounded text-white text-[16px] py-2">Confirmer</button>
 											</>
 										)}
 										{user?.role==='admin' && selected.status==='CONFIRMED' && (
 											<>
-												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED'}:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[14px] py-2 text-[#18181B]">Annuler</button>
+												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED', rejection_reason: rejectionReasonDraft }:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[14px] py-2 text-[#18181B]">Annuler</button>
 												<button onClick={()=>{updateStatus(selected._id,'COMPLETED'); setSelected(sel=> sel?{...sel, status:'COMPLETED'}:sel);}} className="flex-1 bg-[#F16E00] rounded text-white text-[14px] py-2">Clôturer</button>
 											</>
 										)}
+										{selected.status==='COMPLETED' && (
+											<button onClick={()=>{ setSelected(null); setDetailTab('SUMMARY'); }} className="w-full border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Fermer</button>
+										)}
+										{selected.status==='REJECTED' && (
+											<button onClick={()=>{ setSelected(null); setDetailTab('SUMMARY'); }} className="w-full border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Fermer</button>
+										)}
 									</div>
+									{user?.role==='admin' && ['PENDING','CONFIRMED'].includes(selected.status) && (
+										<textarea value={rejectionReasonDraft} onChange={e=>setRejectionReasonDraft(e.target.value)} placeholder="Motif du rejet (optionnel)" className="w-full border border-[#E4E4E7] rounded p-2 text-sm resize-none h-24 focus:outline-none focus:ring-1 focus:ring-orange-500" />
+									)}
 								</div>
 							</div>
 						</div>
