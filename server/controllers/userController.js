@@ -93,8 +93,20 @@ const registerUser = async (req, res) => {
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    const rawPassword = password; // keep plaintext for email BEFORE hashing
-    const hashedPassword = await bcrypt.hash(password, 10);
+    function generatePassword(length = 12) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+~{}[]<>?";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    password += chars[randomIndex];
+  }
+  return password;
+}
+
+
+
+    const rawPassword = generatePassword(); // keep plaintext for email BEFORE hashing
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
     let createdUser;
     if (role === 'university_representative') {

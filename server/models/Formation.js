@@ -10,7 +10,8 @@ const formationSchema = new mongoose.Schema({
   course_languages: [{ type: String }],
   support_languages: [{ type: String }],
   technologies: [{ type: String }],
-  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  final_status: { type: String, enum: ['PENDING','APPROVED','REJECTED'], default: 'PENDING' }
 }, { timestamps: true })
 
 const Formation = mongoose.model('Formation', formationSchema)

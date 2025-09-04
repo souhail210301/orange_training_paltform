@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const AdminNavbar = () => {
+const AdminNavbar = ({ onViewAllNotifications }) => {
   const [open, setOpen] = useState(false);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,7 @@ const AdminNavbar = () => {
                   <span className="font-semibold">Notifications</span>
                   {list.filter(n=>!n.read).length>0 && <span className="text-xs bg-orange-600 text-white px-2 py-0.5 rounded-full">{list.filter(n=>!n.read).length}</span>}
                 </div>
-                <button onClick={fetchNotifs} className="text-xs text-orange-600 hover:underline">Voir Tout</button>
+                <button onClick={() => { if(onViewAllNotifications) onViewAllNotifications(); setOpen(false); }} className="text-xs text-orange-600 hover:underline">Voir Tout</button>
               </div>
               <div className="max-h-96 overflow-y-auto divide-y">
                 {loading && <div className="p-4 text-sm text-gray-500">Chargement...</div>}

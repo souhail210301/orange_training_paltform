@@ -30,6 +30,10 @@ const getFormationById = async (req, res) => {
 
 const updateFormation = async (req, res) => {
   try {
+    // Only allow final_status change if provided and valid
+    if (req.body.final_status && !['PENDING','APPROVED','REJECTED'].includes(req.body.final_status)) {
+      return res.status(400).json({ message: 'Invalid final_status' })
+    }
     const updated = await Formation.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
     if (!updated) return res.status(404).json({ message: 'Formation not found' })
     return res.json(updated)

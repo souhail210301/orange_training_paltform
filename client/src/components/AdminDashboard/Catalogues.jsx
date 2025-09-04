@@ -92,7 +92,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AdminNavbar />
+  <AdminNavbar onViewAllNotifications={() => onNavigate && onNavigate('profile_notifications')} />
       <div className="flex flex-1" style={{marginTop:'64px'}}>
         <AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
         <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{marginLeft:'288px'}}>

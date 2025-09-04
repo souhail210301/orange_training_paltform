@@ -19,6 +19,7 @@ const router = createBrowserRouter([
   { path: '/admin/dashboard', element: <App /> },
   { path: '/admin/users', element: <App /> },
   { path: '/admin/catalogue', element: <App /> },
+  { path: '/admin/sessions', element: <App /> },
   { path: '/admin/profile', element: <App /> },
 ]);
 

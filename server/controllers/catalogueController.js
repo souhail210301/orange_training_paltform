@@ -26,19 +26,33 @@ const createCatalogue = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to create catalogue' });
     }
 
-    const catalogue = await Catalogue.create({
+    const safeProgram = Array.isArray(program) ? program.map(day => ({
+      description: day.description || '',
+      sessions: Array.isArray(day.sessions) ? day.sessions.filter(s => s && (s.from || s.to || s.description)) : []
+    })) : []
+
+  let catalogue = await Catalogue.create({
       coverImage,
       title,
       trainers,
       created_by: req.user._id,
       objectives,
-      program,
+      program: safeProgram,
       prerequisites,
       language,
       level,
       type,
       technologies
     });
+  catalogue = await catalogue.populate({ path: 'created_by', populate: { path: 'university' }, select: '-password' })
+    // Auto-create a pending session entry referencing this catalogue so it appears in Sessions UI
+    try {
+      const Session = require('../models/Session');
+      await Session.create({ catalogue: catalogue._id, status: 'PENDING', requested_by: req.user.role==='university_representative'? req.user._id: undefined });
+    } catch (e) {
+      // swallow any session creation failure to not block catalogue creation
+      console.warn('Auto session create failed:', e.message);
+    }
     // If a trainer was assigned and creator is university rep, send invite notification to that mentor
     if (req.user.role === 'university_representative' && trainers && trainers.length) {
       const mentorId = trainers[0];
@@ -56,6 +70,7 @@ const createCatalogue = async (req, res) => {
     }
     return res.status(201).json(catalogue);
   } catch (error) {
+    console.error('Catalogue create error:', error)
     return res.status(500).json({ message: 'Failed to create catalogue', error: error.message });
   }
 }
@@ -63,6 +78,8 @@ const createCatalogue = async (req, res) => {
 const getCatalogues = async (_req, res) => {
   try {
     const list = await Catalogue.find()
+      .populate({ path: 'created_by', populate: { path: 'university' }, select: '-password' })
+      .populate('trainers', '-password')
     return res.json(list)
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch catalogues' })
@@ -72,6 +89,8 @@ const getCatalogues = async (_req, res) => {
 const getCatalogueById = async (req, res) => {
   try {
     const item = await Catalogue.findById(req.params.id)
+      .populate({ path: 'created_by', populate: { path: 'university' }, select: '-password' })
+      .populate('trainers', '-password')
     if (!item) return res.status(404).json({ message: 'Catalogue not found' })
     return res.json(item)
   } catch (error) {
@@ -96,8 +115,9 @@ const updateCatalogue = async (req, res) => {
     const prevTrainerIds = (existing.trainers || []).map(t => t.toString())
     const nextTrainerIds = (req.body.trainers || prevTrainerIds).map(t => t.toString())
 
-    const updated = await Catalogue.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+  let updated = await Catalogue.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
     if (!updated) return res.status(404).json({ message: 'Catalogue not found after update' })
+  updated = await updated.populate({ path: 'created_by', populate: { path: 'university' }, select: '-password' })
 
     // For university rep: detect newly added first trainer and send invite if not already invited
     if (req.user.role === 'university_representative' && nextTrainerIds.length) {

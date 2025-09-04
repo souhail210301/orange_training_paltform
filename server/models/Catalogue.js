@@ -3,9 +3,9 @@ const mongoose = require('mongoose')
 
 
 const sessionSchema = new mongoose.Schema({
-  from: { type: String, required: true }, // e.g. '09:00'
-  to: { type: String, required: true },   // e.g. '12:00'
-  description: { type: String, required: true }
+  from: { type: String }, // e.g. '09:00'
+  to: { type: String },   // e.g. '12:00'
+  description: { type: String }
 }, { _id: false });
 
 const daySchema = new mongoose.Schema({

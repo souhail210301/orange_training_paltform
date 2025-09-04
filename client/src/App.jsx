@@ -6,6 +6,7 @@ import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import Users from './components/AdminDashboard/Users';
 import Catalogues from './components/AdminDashboard/Catalogues';
+import Sessions from './components/Sessions';
 import UserProfile from './components/UserProfile';
 
 
@@ -20,6 +21,7 @@ function App() {
   let activePage = 'dashboard';
   if (path.startsWith('/admin/users')) activePage = 'users';
   else if (path.startsWith('/admin/catalogue')) activePage = 'catalogue';
+  else if (path.startsWith('/admin/sessions')) activePage = 'sessions';
   else if (path.startsWith('/admin/profile')) activePage = 'profile';
 
   const handleLoginSuccess = (userObj) => {
@@ -41,7 +43,9 @@ function App() {
     }
     if (page === 'users') navigate('/admin/users');
     else if (page === 'catalogue') navigate('/admin/catalogue');
+    else if (page === 'sessions') navigate('/admin/sessions');
     else if (page === 'profile') navigate('/admin/profile');
+    else if (page === 'profile_notifications') navigate('/admin/profile?tab=notifications');
     else navigate('/admin/dashboard');
   };
 
@@ -93,8 +97,15 @@ function App() {
   if (activePage === 'catalogue') {
     return <Catalogues user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
   }
+  if (activePage === 'sessions') {
+    return <Sessions user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+  }
   if (activePage === 'profile') {
-    return <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+    // Detect query param for notifications tab
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    const resolvedPage = tab === 'notifications' ? 'profile_notifications' : activePage;
+    return <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={resolvedPage} />;
   }
   return <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
 }

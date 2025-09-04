@@ -129,7 +129,7 @@ const LoginPage = ({ onLoginSuccess }) => {
                 </div>
 
                 <button
-                  onClick={handleSubmit}
+                  onClick={(e) => handleSubmit(e)}
                   className="w-full bg-orange-500 text-white py-3 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 font-medium transition-colors"
                   disabled={loading || successLoading}
                 >

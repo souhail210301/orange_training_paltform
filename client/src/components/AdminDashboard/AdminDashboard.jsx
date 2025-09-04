@@ -72,7 +72,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AdminNavbar />
+  <AdminNavbar onViewAllNotifications={() => onNavigate && onNavigate('profile_notifications')} />
       <div className="flex flex-1">
         <AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
   <div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{marginLeft:'288px'}}>

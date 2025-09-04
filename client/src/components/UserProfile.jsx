@@ -12,6 +12,8 @@ const tabs = [
 
 const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	const [activeTab, setActiveTab] = useState('profil');
+	// If navigation indicates profile notifications, switch tab
+	useEffect(()=>{ if(activePage === 'profile_notifications') setActiveTab('notifications'); },[activePage]);
 	const [form, setForm] = useState({ name: '', phone_number: '', email: '' });
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
@@ -387,7 +389,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 
 	return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
-			<AdminNavbar />
+			<AdminNavbar onViewAllNotifications={()=> setActiveTab('notifications')} />
 			<div className="flex flex-1">
 				<AdminSidebar user={user || { name: form.name, role: 'Administrateur' }} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
 				<div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{ marginLeft: '288px', marginTop: '64px' }}>
