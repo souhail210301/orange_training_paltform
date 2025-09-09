@@ -4,6 +4,7 @@ import './App.css'
 
 import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
+import Calender from './components/AdminDashboard/Calender';
 import Users from './components/AdminDashboard/Users';
 import Catalogues from './components/AdminDashboard/Catalogues';
 import Sessions from './components/Sessions';
@@ -22,6 +23,7 @@ function App() {
   if (path.startsWith('/admin/users')) activePage = 'users';
   else if (path.startsWith('/admin/catalogue')) activePage = 'catalogue';
   else if (path.startsWith('/admin/sessions')) activePage = 'sessions';
+  else if (path.startsWith('/admin/calender') || path.startsWith('/admin/calendar')) activePage = 'calendar';
   else if (path.startsWith('/admin/profile')) activePage = 'profile';
 
   const handleLoginSuccess = (userObj) => {
@@ -43,7 +45,8 @@ function App() {
     }
     if (page === 'users') navigate('/admin/users');
     else if (page === 'catalogue') navigate('/admin/catalogue');
-    else if (page === 'sessions') navigate('/admin/sessions');
+  else if (page === 'sessions') navigate('/admin/sessions');
+  else if (page === 'calendar') navigate('/admin/calender');
     else if (page === 'profile') navigate('/admin/profile');
     else if (page === 'profile_notifications') navigate('/admin/profile?tab=notifications');
     else navigate('/admin/dashboard');
@@ -99,6 +102,9 @@ function App() {
   }
   if (activePage === 'sessions') {
     return <Sessions user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+  }
+  if (activePage === 'calendar') {
+    return <Calender user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
   }
   if (activePage === 'profile') {
     // Detect query param for notifications tab

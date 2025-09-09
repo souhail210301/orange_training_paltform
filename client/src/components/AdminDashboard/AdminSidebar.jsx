@@ -27,6 +27,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
     if (onNavigate) return onNavigate(key);
     if (key === 'users') navigate('/admin/users');
     else if (key === 'catalogue') navigate('/admin/catalogue');
+  else if (key === 'calendar') navigate('/admin/calender');
     else navigate('/admin/dashboard');
   };
   return (
