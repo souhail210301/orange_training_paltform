@@ -197,11 +197,14 @@ const scheduleDate = async (req, res) => {
 // Approve / Reject / Complete session
 const setStatus = async (req, res) => {
   try {
-    const { status } = req.body // CONFIRMED | REJECTED | COMPLETED
+  const { status, rejection_reason } = req.body // CONFIRMED | REJECTED | COMPLETED
     if (!['CONFIRMED','REJECTED','COMPLETED'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' })
     }
     const patch = { status }
+    if(status==='REJECTED' && rejection_reason){
+      patch.rejection_reason = rejection_reason
+    }
     if (status === 'COMPLETED') {
       patch.completed_at = new Date()
     }

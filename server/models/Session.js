@@ -16,6 +16,7 @@ const sessionSchema = new mongoose.Schema({
   scheduled_at: { type: Date }, // legacy internal field
   scheduled_end: { type: Date }, // legacy internal field
   status: { type: String, enum: ['PENDING','CONFIRMED','REJECTED','COMPLETED'], default: 'PENDING' },
+  rejection_reason: { type: String },
   qr_code_data: { type: String },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Participant' }]
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })

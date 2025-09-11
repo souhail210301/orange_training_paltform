@@ -1,5 +1,5 @@
 const express = require('express')
-const { protect, adminOnly } = require('../middleware/authMiddleware')
+const { protect, allowRoles } = require('../middleware/authMiddleware')
 const {
   createCatalogue,
   getCatalogues,
@@ -14,9 +14,10 @@ router.get('/', getCatalogues)
 router.get('/:id', getCatalogueById)
 
 // Allow admins, university reps to create/update/delete catalogues; mentors view only
-router.post('/', protect, createCatalogue)
-router.put('/:id', protect, updateCatalogue) // Ensure proper controller function used
-router.delete('/:id', protect, deleteCatalogue)
+// Create / modify only by admin or university representative
+router.post('/', protect, allowRoles('admin','university_representative'), createCatalogue)
+router.put('/:id', protect, allowRoles('admin','university_representative'), updateCatalogue)
+router.delete('/:id', protect, allowRoles('admin','university_representative'), deleteCatalogue)
 
 module.exports = router
 

@@ -7,7 +7,8 @@ import ForgetPassword from './components/ForgetPassword.jsx';
 import ResetPasswordPage from './components/ResetPassword.jsx';
 import EmailSent from './components/EmailSent.jsx';
 import LoginPage from './components/LoginPage.jsx';
-
+import AboutPage from './components/Students/About.jsx';
+import ApplicationPage from './components/Students/Application.jsx';
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
   { path: '/admin/calender', element: <App /> },
   { path: '/admin/calendar', element: <App /> },
   { path: '/admin/profile', element: <App /> },
+  // Students pages
+  { path: '/students/about', element: <AboutPage /> },
+  { path: '/students/application', element: <ApplicationPage /> },
+
 ]);
 
 createRoot(document.getElementById('root')).render(
