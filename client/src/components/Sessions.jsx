@@ -23,6 +23,21 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	const [rangeDraft, setRangeDraft] = useState({ start: null, end: null });
 	const [scheduling, setScheduling] = useState(false);
 	const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
+	// Participants modal state
+	const [showParticipants, setShowParticipants] = useState(false);
+	const [participants, setParticipants] = useState([]);
+	const [addingPartLoading, setAddingPartLoading] = useState(false);
+	const [newParticipant, setNewParticipant] = useState({ name:'', email:'', phone:'', level:'', countryCode:'+216' });
+	const [editParticipant, setEditParticipant] = useState(null);
+	const [editParticipantError, setEditParticipantError] = useState(null);
+	const [showAddModal, setShowAddModal] = useState(false);
+	const [showEditModal, setShowEditModal] = useState(false);
+	const [actionMenuFor, setActionMenuFor] = useState(null); // participant id showing menu
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const levelOptions = ['1ère License','2ème License','3ème License','Mastère','Ingénieur','Autre'];
+	const [addParticipantError, setAddParticipantError] = useState(null);
+	// Persist session id for participants modal (so we can still add even if drawer closed or selected cleared)
+	const [participantsSessionId, setParticipantsSessionId] = useState(null);
 
 	// Reset / initialize date range when selected session changes
 	useEffect(()=>{
@@ -194,6 +209,124 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		setSelected(sel=> sel?{...sel, status:'CONFIRMED'}:sel);
 	};
 
+	// Participants helpers
+	const openParticipants = async () => {
+		if(!selected) return;
+		setShowParticipants(true);
+		setParticipantsSessionId(selected._id);
+		// Use already populated participants if any
+		if(selected.participants) setParticipants(selected.participants);
+		try {
+			const res = await fetch(`/api/sessions/${selected._id}`);
+			if(res.ok){
+				const data = await res.json();
+				setParticipants(data.participants||[]);
+				setSelected(s=> s && s._id===data._id? {...s, participants:data.participants}:s);
+			}
+		}catch(e){ /* ignore */ }
+	};
+	const addParticipant = async () => {
+		const sessionId = selected? selected._id : participantsSessionId;
+		console.log('[addParticipant] click', { selected: !!selected, participantsSessionId, sessionId, newParticipant });
+		if(!sessionId){
+			setAddParticipantError('Session introuvable. Veuillez ré-ouvrir la liste depuis la session.');
+			return;
+		}
+		if(!newParticipant.email){
+			setAddParticipantError('Email obligatoire');
+			return;
+		}
+		// simple email pattern
+		if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(newParticipant.email)){
+			setAddParticipantError('Email invalide');
+			return;
+		}
+		setAddingPartLoading(true);
+		setAddParticipantError(null);
+		try {
+			const token = localStorage.getItem('token');
+			const res = await fetch(`/api/sessions/${sessionId}/participants`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ participants:[newParticipant] }) });
+			if(res.ok){
+				const upd = await res.json();
+				setParticipants(upd.participants||[]);
+				setSelected(sel=> sel && sel._id===upd._id? {...sel, participants: upd.participants}: sel);
+				// Sync in sessions table so when user reopens drawer the count is fresh
+				setSessions(list => list.map(s => s._id === upd._id ? { ...s, participants: upd.participants } : s));
+				setNewParticipant({ name:'', email:'', phone:'', level:'', countryCode:'+216' });
+				setShowAddModal(false);
+			} else {
+				let msg = 'Erreur inconnue';
+				try { const data = await res.json(); msg = data.message || msg; } catch(_) {}
+				if(res.status===401 || res.status===403) msg = 'Permission refusée: seul un administrateur peut ajouter des participants.';
+				if(res.status===409) msg = 'Ce participant existe déjà.';
+				setAddParticipantError(msg);
+				console.warn('[addParticipant] server response not ok', res.status, msg);
+			}
+		} catch(e){
+			console.error('[addParticipant] network error', e);
+			setAddParticipantError('Erreur réseau: impossible de contacter le serveur.');
+		} finally { setAddingPartLoading(false); }
+	};
+	const saveEditParticipant = async () => {
+		if(!editParticipant) return;
+		const sessionId = selected ? selected._id : participantsSessionId;
+		if(!sessionId){
+			setEditParticipantError('Session introuvable.');
+			return;
+		}
+		setEditParticipantError(null);
+		const token = localStorage.getItem('token');
+		const { _id, ...payload } = editParticipant;
+		try {
+			const res = await fetch(`/api/sessions/${sessionId}/participants/${_id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify(payload) });
+			if(res.ok){
+				const updatedDoc = await res.json();
+				setParticipants(list => list.map(p=> p._id===updatedDoc._id? updatedDoc: p));
+				// sync drawer selected copy
+				if(selected && selected._id === sessionId){
+					setSelected(sel => sel ? { ...sel, participants: (sel.participants||[]).map(p=> p._id===updatedDoc._id? updatedDoc : p) } : sel);
+				}
+				setShowEditModal(false);
+			} else {
+				let msg = 'Echec de la mise à jour';
+				try { const data = await res.json(); if(data.message) msg = data.message; } catch(_) {}
+				if(res.status===401 || res.status===403) msg = 'Permission refusée.';
+				if(res.status===409) msg = "Email déjà utilisé pour cette session.";
+				setEditParticipantError(msg);
+			}
+		} catch(e){
+			setEditParticipantError('Erreur réseau');
+		}
+	};
+	const confirmParticipantsList = async () => {
+		if(!selected) return;
+		const token = localStorage.getItem('token');
+		const res = await fetch(`/api/sessions/${selected._id}/participants/confirm`, { method:'POST', headers:{ Authorization: token?`Bearer ${token}`:'' } });
+		if(res.ok){
+			setSelected(sel=> sel? {...sel, participants_confirmed:true }: sel);
+			setShowConfirmModal(false);
+		}
+	};
+	const togglePresence = async (p) => {
+		const token = localStorage.getItem('token');
+		setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: !x.presence}:x));
+		await fetch(`/api/sessions/${selected._id}/participants/${p._id}/presence`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ presence: !p.presence }) });
+	};
+
+	const deleteParticipant = async (participant) => {
+		const sessionId = selected? selected._id : participantsSessionId;
+		if(!sessionId) return;
+		const token = localStorage.getItem('token');
+		// optimistic update
+		setParticipants(list => list.filter(p=> p._id!==participant._id));
+		setActionMenuFor(null);
+		await fetch(`/api/sessions/${sessionId}/participants/${participant._id}`, { method:'DELETE', headers:{ Authorization: token?`Bearer ${token}`:'' } });
+		if(selected && selected._id===sessionId){
+			setSelected(sel => sel ? { ...sel, participants: (sel.participants||[]).filter(p=> p._id!==participant._id) } : sel);
+		}
+		setSessions(list => list.map(s => s._id===sessionId ? { ...s, participants: (s.participants||[]).filter(p=> p._id!==participant._id) } : s));
+	};
+
 	// Donut chart data
 	const donutData = [
 		{ key:'PENDING', value: counts.PENDING, color: STATUS_META.PENDING.color },
@@ -235,13 +368,13 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 					</div>
 					<div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
 						{/* List redesigned */}
-						<div className="xl:col-span-3 flex flex-col items-start mx-auto" style={{width:'968px'}}>
+						<div className="xl:col-span-3 flex flex-col items-start mx-auto w-full" style={{width:'860px'}}>
 							{/* Header */}
 							<div className="flex items-start w-full bg-[#F16E00] text-white rounded-t-lg border border-[#E4E4E7] px-4 py-4 gap-4" style={{height:'48px'}}>
-								<div className="font-medium" style={{width:'550px'}}>Formation</div>
-								<div className="font-medium" style={{width:'120px'}}>De</div>
-								<div className="font-medium" style={{width:'120px'}}>Jusqu'à</div>
-								<div className="font-medium" style={{width:'98px'}}>Etat</div>
+								<div className="font-medium" style={{width:'480px'}}>Formation</div>
+								<div className="font-medium" style={{width:'110px'}}>De</div>
+								<div className="font-medium" style={{width:'110px'}}>Jusqu'à</div>
+								<div className="font-medium" style={{width:'90px'}}>Etat</div>
 								<div className="ml-auto text-xs font-normal opacity-80">{/* actions placeholder */}</div>
 							</div>
 							{/* Body container */}
@@ -265,14 +398,14 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 									const fmt = d => d? d.toLocaleDateString('fr-FR'):'—';
 									const statusMeta = STATUS_META[s.status] || STATUS_META.PENDING;
 									return (
-										<div key={s._id} onClick={()=>{ setSelected(s); setSelectedDetails(null); }} className={`flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 ${idx!==0?'border-t border-[#E4E4E7]':''}`} style={{height:'57px'}}>
-											<div className="flex flex-col justify-center" style={{width:'545px'}}>
+											<div key={s._id} onClick={()=>{ setSelected(s); setSelectedDetails(null); }} className={`flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 ${idx!==0?'border-t border-[#E4E4E7]':''}`} style={{height:'57px'}}>
+												<div className="flex flex-col justify-center" style={{width:'480px'}}>
 												<div className="text-[16px] leading-[19px] text-[#050505] truncate">{s.formation?.title || s.catalogue?.title || '—'}</div>
 												<div className="text-[14px] leading-[17px] text-[#A1A1AA] truncate">{s.formation?.organization || s.catalogue?.created_by?.university?.name || ''}</div>
 											</div>
-											<div className="text-[16px] leading-[19px] text-[#050505]" style={{width:'120px'}}>{fmt(s.start_date ? new Date(s.start_date) : from)}</div>
-											<div className="text-[16px] leading-[19px] text-[#050505]" style={{width:'120px'}}>{fmt(s.end_date ? new Date(s.end_date) : to)}</div>
-											<div style={{width:'103px'}}>
+												<div className="text-[16px] leading-[19px] text-[#050505]" style={{width:'110px'}}>{fmt(s.start_date ? new Date(s.start_date) : from)}</div>
+												<div className="text-[16px] leading-[19px] text-[#050505]" style={{width:'110px'}}>{fmt(s.end_date ? new Date(s.end_date) : to)}</div>
+												<div style={{width:'90px'}}>
 												<span className="inline-flex items-center gap-1 px-2 py-1 rounded text-white text-[14px]" style={{background:statusMeta.color}}>
 													<span className="w-2 h-2 rounded-full bg-white"></span>{statusMeta.label}
 												</span>
@@ -424,7 +557,10 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 										);
 										const start = base.start_date || base.scheduled_at;
 										const end = base.end_date || base.scheduled_end;
-										const participantsCount = Array.isArray(base.participants)? base.participants.length : 0;
+												// If drawer session matches participants modal session, prefer live participants state
+												let participantsCount = 0;
+												if(Array.isArray(base.participants)) participantsCount = base.participants.length;
+												if(participantsSessionId && base._id === participantsSessionId && Array.isArray(participants)) participantsCount = participants.length;
 										const isRejected = base.status==='REJECTED';
 										const rejectionReason = base.rejection_reason;
 										return (
@@ -444,7 +580,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 													<div className="mt-6 bg-[#F7F7F8] border border-[#E4E4E7] rounded p-3 flex flex-col gap-3">
 														<div className="flex items-center gap-8 text-[14px]"><span className="text-[#71717A] w-24">Date:</span><span className="text-[#050505] font-medium">{start? new Date(start).toLocaleDateString('fr-FR'):'—'} - {end? new Date(end).toLocaleDateString('fr-FR'):'—'}</span></div>
 														<div className="flex items-center gap-8 text-[14px]"><span className="text-[#71717A] w-24">Nb Participants:</span><span className="text-[#050505] font-medium">{participantsCount} Étudiant{participantsCount>1?'s':''}</span></div>
-														<button className="w-full bg-[#F16E00] text-white rounded text-[16px] py-2">Voir la liste des participants</button>
+														<button onClick={openParticipants} className="w-full bg-[#F16E00] text-white rounded text-[16px] py-2">Voir la liste des participants</button>
 													</div>
 												)}
 												{isRejected && (
@@ -486,6 +622,162 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 						</div>
 					)}
 
+					{/* Add Participant Modal */}
+					{showAddModal && (
+						<div className="fixed inset-0 z-[70] flex items-start justify-center p-4 overflow-y-auto">
+							<div className="fixed inset-0 bg-black/40" onClick={()=> setShowAddModal(false)}></div>
+							<div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mt-10 p-6">
+								<div className="flex items-start justify-between mb-6">
+									<h2 className="text-xl font-semibold">Ajouter Un Participant</h2>
+									<button onClick={()=> setShowAddModal(false)} className="text-gray-500 hover:text-gray-800 text-2xl leading-none">×</button>
+								</div>
+								<div className="flex flex-col gap-5">
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Nom</label>
+										<input className="border rounded px-3 py-2 text-sm" placeholder="Nom d'utilisateur" value={newParticipant.name} onChange={e=> setNewParticipant(p=>({...p,name:e.target.value}))} />
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Email</label>
+										<input className="border rounded px-3 py-2 text-sm" placeholder="nom@email.com" value={newParticipant.email} onChange={e=> setNewParticipant(p=>({...p,email:e.target.value}))} />
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Numéro</label>
+										<div className="flex">
+											<select value={newParticipant.countryCode||'+216'} onChange={e=> setNewParticipant(p=>({...p,countryCode:e.target.value}))} className="border rounded-l px-2 text-sm bg-white">
+												<option value="+216">TN +216</option>
+												<option value="+33">FR +33</option>
+											</select>
+											<input className="border border-l-0 rounded-r px-3 py-2 text-sm flex-1" placeholder="+216" value={newParticipant.phone} onChange={e=> setNewParticipant(p=>({...p,phone:e.target.value}))} />
+										</div>
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Niveau</label>
+										<select className="border rounded px-3 py-2 text-sm" value={newParticipant.level||''} onChange={e=> setNewParticipant(p=>({...p,level:e.target.value}))}>
+											<option value="" disabled>Niveau du participant</option>
+											{levelOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+										</select>
+									</div>
+								</div>
+								{addParticipantError && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{addParticipantError}</div>}
+								<div className="mt-8 flex justify-end gap-4 text-sm">
+									<button onClick={()=> setShowAddModal(false)} className="border px-4 py-2 rounded">Annuler</button>
+									<button disabled={!newParticipant.email} onClick={addParticipant} className="bg-[#F16E00] text-white px-5 py-2 rounded disabled:opacity-50">Ajouter</button>
+								</div>
+							</div>
+						</div>
+					)}
+
+					{/* Edit Participant Modal */}
+					{showEditModal && editParticipant && (
+						<div className="fixed inset-0 z-[70] flex items-start justify-center p-4 overflow-y-auto">
+							<div className="fixed inset-0 bg-black/40" onClick={()=> setShowEditModal(false)}></div>
+							<div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mt-10 p-6">
+								<div className="flex items-start justify-between mb-6">
+									<h2 className="text-xl font-semibold">Modifier Un Participant</h2>
+									<button onClick={()=> setShowEditModal(false)} className="text-gray-500 hover:text-gray-800 text-2xl leading-none">×</button>
+								</div>
+								<div className="flex flex-col gap-5">
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Nom</label>
+										<input className="border rounded px-3 py-2 text-sm" value={editParticipant.name||''} onChange={e=> setEditParticipant(p=>({...p,name:e.target.value}))} />
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Email</label>
+										<input className="border rounded px-3 py-2 text-sm" value={editParticipant.email} onChange={e=> setEditParticipant(p=>({...p,email:e.target.value}))} />
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Numéro</label>
+										<div className="flex">
+											<select value={editParticipant.countryCode||'+216'} onChange={e=> setEditParticipant(p=>({...p,countryCode:e.target.value}))} className="border rounded-l px-2 text-sm bg-white">
+												<option value="+216">TN +216</option>
+												<option value="+33">FR +33</option>
+											</select>
+											<input className="border border-l-0 rounded-r px-3 py-2 text-sm flex-1" value={editParticipant.phone||''} onChange={e=> setEditParticipant(p=>({...p,phone:e.target.value}))} />
+										</div>
+									</div>
+									<div className="flex flex-col gap-1">
+										<label className="text-sm font-medium">Niveau</label>
+										<select className="border rounded px-3 py-2 text-sm" value={editParticipant.level||''} onChange={e=> setEditParticipant(p=>({...p,level:e.target.value}))}>
+											<option value="" disabled>Choisir niveau</option>
+											{levelOptions.map(o=> <option key={o} value={o}>{o}</option>)}
+										</select>
+									</div>
+								</div>
+								<div className="mt-8 flex justify-end gap-4 text-sm">
+									<button onClick={()=> setShowEditModal(false)} className="border px-4 py-2 rounded">Annuler</button>
+									<button onClick={saveEditParticipant} className="bg-[#F16E00] text-white px-5 py-2 rounded">Confirmer</button>
+								</div>
+								{editParticipantError && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{editParticipantError}</div>}
+							</div>
+						</div>
+					)}
+
+
+					{/* Participants modal */}
+					{showParticipants && (
+											<div className="fixed inset-0 z-[60] flex items-start justify-center p-4 overflow-y-auto">
+							<div className="fixed inset-0 bg-black/40" onClick={()=> setShowParticipants(false)}></div>
+							<div className="relative bg-white rounded-lg shadow-xl w-full max-w-5xl mt-6 p-6 flex flex-col" style={{maxHeight:'calc(100vh - 3rem)'}}>
+								<div className="flex items-start justify-between mb-4">
+									<h2 className="text-xl font-semibold">Modifier la liste des participants</h2>
+									<button onClick={()=> setShowParticipants(false)} className="text-gray-500 hover:text-gray-800 text-2xl leading-none">×</button>
+								</div>
+								<div className="flex items-center justify-end gap-3 mb-4">
+									<button onClick={()=> { setNewParticipant({ name:'', email:'', phone:'', level:'', countryCode:'+216'}); setShowAddModal(true); }} className="bg-[#F16E00] text-white px-4 py-2 rounded text-sm">+ Ajouter Participant</button>
+								</div>
+								<div className="flex-1 overflow-y-auto border rounded-lg" style={{minHeight:'420px'}}>
+									<table className="w-full text-sm">
+										<thead>
+											<tr className="bg-[#F16E00] text-white text-left">
+												<th className="font-medium px-4 py-3 w-1/4">Nom</th>
+												<th className="font-medium px-4 py-3 w-1/4">Email</th>
+												<th className="font-medium px-4 py-3 w-1/6">Numéro</th>
+												<th className="font-medium px-4 py-3 w-1/6">Présence</th>
+												<th className="px-2 py-3 w-8"></th>
+											</tr>
+										</thead>
+										<tbody>
+											{participants.map(p => (
+												<tr key={p._id} className="border-t">
+													<td className="px-4 py-3 whitespace-nowrap">{p.name || '—'}</td>
+													<td className="px-4 py-3 whitespace-nowrap">{p.email}</td>
+													<td className="px-4 py-3 whitespace-nowrap">{p.phone || '—'}</td>
+													<td className="px-4 py-3">
+														<button onClick={()=>togglePresence(p)} className={`w-12 h-6 rounded-full relative transition-colors ${p.presence?'bg-[#24965A]':'bg-gray-300'}`}>
+															<span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${p.presence?'translate-x-6':''}`}></span>
+														</button>
+													</td>
+													<td className="px-2 py-3 text-center text-gray-500">
+														<div className="relative inline-block text-left">
+															<button onClick={(e)=> { e.stopPropagation(); setActionMenuFor(id => id===p._id? null : p._id); }} className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 focus:outline-none">
+																<span className="text-xl leading-none">⋮</span>
+															</button>
+															{actionMenuFor===p._id && (
+																<div className="absolute right-0 mt-1 w-44 bg-white border border-[#E4E4E7] rounded shadow-sm z-10" onMouseLeave={()=> setActionMenuFor(null)}>
+																	<button onClick={()=> { setEditParticipant({ ...p }); setShowEditModal(true); setActionMenuFor(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-[#18181B]">
+																		<img src="/edit_icon.png" alt="edit" className="w-4 h-4" />
+																		<span>Modifier</span>
+																	</button>
+																	<button onClick={()=> deleteParticipant(p)} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-[#18181B]">
+																		<img src="/trash_icon.png" alt="delete" className="w-4 h-4" />
+																		<span>Supprimer</span>
+																	</button>
+																</div>
+															)}
+														</div>
+													</td>
+												</tr>
+											))}
+											{participants.length===0 && (
+												<tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>Aucun participant</td></tr>
+											)}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					)}
+
 				</div>
 			</div>
 		</div>
@@ -493,3 +785,5 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 };
 
 export default Sessions;
+
+// Participants Modal appended after component definition removed (component returns earlier)

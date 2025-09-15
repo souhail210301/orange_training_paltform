@@ -19,6 +19,7 @@ const sessionSchema = new mongoose.Schema({
   rejection_reason: { type: String },
   qr_code_data: { type: String },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Participant' }]
+  ,participants_confirmed: { type: Boolean, default: false }
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })
 
 // Virtuals to expose new naming convention expected by client

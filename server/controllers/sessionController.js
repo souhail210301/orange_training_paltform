@@ -230,21 +230,34 @@ const setStatus = async (req, res) => {
   }
 }
 
-// Add participants by emails array
+// Add participants: supports { emails:[...] } OR { participants:[ {name,email,phone} ] }
 const addParticipants = async (req, res) => {
   try {
-    const { emails } = req.body
-    if (!Array.isArray(emails) || emails.length === 0) {
-      return res.status(400).json({ message: 'emails must be a non-empty array' })
-    }
     const sessionId = req.params.id
-    const createdParticipants = await Participant.insertMany(
-      emails.map(email => ({ email, session: sessionId }))
-    )
-    const participantIds = createdParticipants.map(p => p._id)
+    let docs = []
+    if (Array.isArray(req.body.emails)) {
+      docs = req.body.emails.filter(Boolean).map(email => ({ email: String(email).trim().toLowerCase(), session: sessionId }))
+    } else if (Array.isArray(req.body.participants)) {
+      docs = req.body.participants.filter(p=>p && p.email).map(p => ({
+        session: sessionId,
+        email: String(p.email).trim().toLowerCase(),
+        name: p.name || undefined,
+        phone: p.phone || undefined,
+        countryCode: p.countryCode || '+216',
+        level: p.level || undefined
+      }))
+    }
+    if (!docs.length) return res.status(400).json({ message: 'Provide emails[] or participants[]' })
+    // Use ordered:false so duplicates skip silently
+    const created = await Participant.insertMany(docs, { ordered: false }).catch(e=>{
+      // Mongo bulk write duplicate errors -> some inserted
+      if (e.insertedDocs) return e.insertedDocs
+      throw e
+    })
+    const ids = (created.insertedIds ? Object.values(created.insertedIds) : created.map(d=>d._id))
     const updated = await Session.findByIdAndUpdate(
       sessionId,
-      { $addToSet: { participants: { $each: participantIds } } },
+      { $addToSet: { participants: { $each: ids } } },
       { new: true }
     ).populate('participants')
     return res.status(201).json(updated)
@@ -266,6 +279,42 @@ const setParticipantPresence = async (req, res) => {
   }
 }
 
+// Update a participant (name, email, phone, level)
+const updateParticipant = async (req, res) => {
+  try {
+    const { participantId } = req.params
+    const allowed = ['name','email','phone','countryCode','level']
+    const patch = {}
+    allowed.forEach(k=> { if(req.body[k]!==undefined) patch[k]=req.body[k] })
+    const doc = await Participant.findByIdAndUpdate(participantId, patch, { new: true, runValidators: true })
+    if(!doc) return res.status(404).json({ message:'Participant not found' })
+    return res.json(doc)
+  } catch(e){ return res.status(500).json({ message:'Failed to update participant' }) }
+}
+
+// Confirm participants list (locks edits)
+const confirmParticipants = async (req,res) => {
+  try {
+    const { id } = req.params
+    const session = await Session.findByIdAndUpdate(id, { participants_confirmed: true }, { new:true })
+    if(!session) return res.status(404).json({ message:'Session not found' })
+    return res.json({ participants_confirmed: session.participants_confirmed })
+  } catch(e){ return res.status(500).json({ message:'Failed to confirm participants' }) }
+}
+
+// Remove a participant from a session
+const removeParticipant = async (req,res) => {
+  try {
+    const { id, participantId } = req.params
+    // Remove participant document
+    const doc = await Participant.findByIdAndDelete(participantId)
+    if(!doc) return res.status(404).json({ message:'Participant not found' })
+    // Pull from session participants array
+    await Session.findByIdAndUpdate(id, { $pull: { participants: participantId } })
+    return res.json({ _id: participantId, removed: true })
+  } catch(e){ return res.status(500).json({ message:'Failed to delete participant' }) }
+}
+
 module.exports = {
   // CRUD
   createSession,
@@ -281,5 +330,8 @@ module.exports = {
 }
 
 module.exports.setStatus = setStatus
+module.exports.updateParticipant = updateParticipant
+module.exports.confirmParticipants = confirmParticipants
+module.exports.removeParticipant = removeParticipant
 
 
