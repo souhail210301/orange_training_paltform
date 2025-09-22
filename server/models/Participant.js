@@ -7,6 +7,7 @@ const participantSchema = new mongoose.Schema({
 		countryCode: { type: String, trim: true, default: '+216' },
 		phone: { type: String, trim: true },
 		level: { type: String, trim: true },
+		gender: { type: String, trim: true },
 	presence: { type: Boolean, default: false }
 }, { timestamps: true })
 

@@ -9,6 +9,7 @@ import EmailSent from './components/EmailSent.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import AboutPage from './components/Students/About.jsx';
 import ApplicationPage from './components/Students/Application.jsx';
+import AccessRequest from './components/Students/AccessRequest.jsx';
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
   // Students pages
   { path: '/students/about', element: <AboutPage /> },
   { path: '/students/application', element: <ApplicationPage /> },
+  { path: '/students/access-request', element: <AccessRequest /> },
 
 ]);
 

@@ -237,14 +237,15 @@ const addParticipants = async (req, res) => {
     let docs = []
     if (Array.isArray(req.body.emails)) {
       docs = req.body.emails.filter(Boolean).map(email => ({ email: String(email).trim().toLowerCase(), session: sessionId }))
-    } else if (Array.isArray(req.body.participants)) {
+  } else if (Array.isArray(req.body.participants)) {
       docs = req.body.participants.filter(p=>p && p.email).map(p => ({
         session: sessionId,
         email: String(p.email).trim().toLowerCase(),
         name: p.name || undefined,
         phone: p.phone || undefined,
         countryCode: p.countryCode || '+216',
-        level: p.level || undefined
+    level: p.level || undefined,
+    gender: p.gender || undefined
       }))
     }
     if (!docs.length) return res.status(400).json({ message: 'Provide emails[] or participants[]' })
@@ -266,11 +267,24 @@ const addParticipants = async (req, res) => {
   }
 }
 
-// Update a participant presence
+// Update a participant presence (admin or assigned mentor only)
 const setParticipantPresence = async (req, res) => {
   try {
-    const { participantId } = req.params
+    const { id, participantId } = req.params
     const { presence } = req.body
+    const session = await Session.findById(id).select('teacher participants')
+    if (!session) return res.status(404).json({ message: 'Session not found' })
+    // Auth: admin or session teacher
+    const isAdmin = req.user && req.user.role === 'admin'
+    const isMentor = req.user && req.user.role === 'odc_mentor' && session.teacher && session.teacher.toString() === req.user._id.toString()
+    if (!isAdmin && !isMentor) {
+      return res.status(403).json({ message: 'Not authorized to update presence for this session' })
+    }
+    // Ensure participant is part of the session
+    const partOfSession = session.participants.some(p => p.toString() === participantId)
+    if (!partOfSession) {
+      return res.status(400).json({ message: 'Participant does not belong to this session' })
+    }
     const participant = await Participant.findByIdAndUpdate(participantId, { presence }, { new: true })
     if (!participant) return res.status(404).json({ message: 'Participant not found' })
     return res.json(participant)
@@ -283,7 +297,7 @@ const setParticipantPresence = async (req, res) => {
 const updateParticipant = async (req, res) => {
   try {
     const { participantId } = req.params
-    const allowed = ['name','email','phone','countryCode','level']
+  const allowed = ['name','email','phone','countryCode','level','gender']
     const patch = {}
     allowed.forEach(k=> { if(req.body[k]!==undefined) patch[k]=req.body[k] })
     const doc = await Participant.findByIdAndUpdate(participantId, patch, { new: true, runValidators: true })

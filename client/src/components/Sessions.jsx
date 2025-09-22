@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminNavbar from './AdminDashboard/AdminNavbar';
 import AdminSidebar from './AdminDashboard/AdminSidebar';
+import * as XLSX from 'xlsx';
 
 const STATUS_META = {
 	PENDING: { label: 'En Attente', color: '#F88826' },
@@ -38,6 +39,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	const [addParticipantError, setAddParticipantError] = useState(null);
 	// Persist session id for participants modal (so we can still add even if drawer closed or selected cleared)
 	const [participantsSessionId, setParticipantsSessionId] = useState(null);
+	const [importing, setImporting] = useState(false);
+	const [importError, setImportError] = useState(null);
 
 	// Reset / initialize date range when selected session changes
 	useEffect(()=>{
@@ -115,10 +118,12 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 
 		const counts = sessions.reduce((acc,s)=>{ acc.ALL++; acc[s.status]=(acc[s.status]||0)+1; return acc; }, { ALL:0, PENDING:0, CONFIRMED:0, REJECTED:0, COMPLETED:0 });
 		// University rep sees only their requested sessions plus confirmed ones for their formations (simplified: show all for now unless role restricts)
-		let visible = sessions;
-		if (user?.role === 'university_representative') {
-			visible = sessions.filter(s => (s.requested_by && s.requested_by._id === user._id));
-		}
+			let visible = sessions;
+			if (user?.role === 'university_representative') {
+				visible = sessions.filter(s => (s.requested_by && s.requested_by._id === user._id));
+			} else if (user?.role === 'odc_mentor') {
+				visible = sessions.filter(s => (s.teacher && (s.teacher._id ? s.teacher._id === user._id : s.teacher === user._id)));
+			}
 		const filtered = visible.filter(s => filter==='ALL' || s.status===filter);
 	const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
 	const pageItems = filtered.slice((page-1)*pageSize, page*pageSize);
@@ -247,11 +252,34 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 			const token = localStorage.getItem('token');
 			const res = await fetch(`/api/sessions/${sessionId}/participants`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ participants:[newParticipant] }) });
 			if(res.ok){
-				const upd = await res.json();
-				setParticipants(upd.participants||[]);
-				setSelected(sel=> sel && sel._id===upd._id? {...sel, participants: upd.participants}: sel);
-				// Sync in sessions table so when user reopens drawer the count is fresh
-				setSessions(list => list.map(s => s._id === upd._id ? { ...s, participants: upd.participants } : s));
+				const data = await res.json();
+				// Support both shapes: { _id, participants:[...] } OR a single participant doc
+				let nextParticipants = null;
+				let newDoc = null;
+				let targetSessionId = sessionId;
+				if (data && Array.isArray(data.participants)) {
+					nextParticipants = data.participants;
+					if(data._id) targetSessionId = data._id;
+				} else if (data && Array.isArray(data.added)) {
+					// some APIs return { added:[docs] }
+					newDoc = data.added[0];
+				} else if (data && data.participant) {
+					newDoc = data.participant;
+				} else if (data && data._id && data.email) {
+					// looks like a participant doc
+					newDoc = data;
+				}
+				if (!nextParticipants) {
+					// merge newDoc into current state if present
+					if (newDoc) {
+						nextParticipants = [...participants.filter(p=> p._id !== newDoc._id), newDoc];
+					} else {
+						nextParticipants = participants;
+					}
+				}
+				setParticipants(nextParticipants);
+				setSelected(sel=> sel && sel._id===targetSessionId? { ...sel, participants: nextParticipants } : sel);
+				setSessions(list => list.map(s => s._id === targetSessionId ? { ...s, participants: nextParticipants } : s));
 				setNewParticipant({ name:'', email:'', phone:'', level:'', countryCode:'+216' });
 				setShowAddModal(false);
 			} else {
@@ -311,6 +339,62 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		const token = localStorage.getItem('token');
 		setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: !x.presence}:x));
 		await fetch(`/api/sessions/${selected._id}/participants/${p._id}/presence`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ presence: !p.presence }) });
+	};
+
+	// Import participants from CSV/XLS/XLSX/JSON
+	const handleImportFile = async (file) => {
+		setImportError(null);
+		const sessionId = selected? selected._id : participantsSessionId;
+		if(!sessionId){ setImportError('Session introuvable.'); return; }
+		if(!file){ return; }
+		const name = file.name.toLowerCase();
+		try{
+			setImporting(true);
+			const arrayBuffer = await file.arrayBuffer();
+			let rows = [];
+			if(name.endsWith('.json')){
+				// Parse JSON array
+				const text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+				const data = JSON.parse(text);
+				if(Array.isArray(data)) rows = data; else if(Array.isArray(data.rows)) rows = data.rows; else throw new Error('JSON invalide');
+			}else{
+				// Use xlsx for csv/xls/xlsx
+				const wb = XLSX.read(arrayBuffer, { type:'array' });
+				const ws = wb.Sheets[wb.SheetNames[0]];
+				rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+			}
+			// Normalize to expected fields: name, gender, phone(number), class(level), email
+			const participantsPayload = rows.map(r=>{
+				// build case-insensitive map
+				const lower = {};
+				Object.keys(r||{}).forEach(k=> { lower[k.toLowerCase().trim()] = r[k]; });
+				const pick = (...cands) => {
+					for(const c of cands){ const v = lower[c.toLowerCase()]; if(v!==undefined && v!==null && String(v).trim()!=='') return v; }
+					return '';
+				};
+				const obj = {};
+				obj.name = pick('name','nom','full name');
+				obj.email = String(pick('email','e-mail','mail')).trim();
+				obj.phone = pick('number','phone','phone number','numéro','numero','téléphone','telephone');
+				obj.level = pick('class','classe','niveau');
+				obj.gender = pick('gender','sexe');
+				obj.countryCode = '+216';
+				return obj;
+			}).filter(p=> p.email);
+			if(participantsPayload.length===0){ throw new Error('Aucune ligne valide trouvée'); }
+			const token = localStorage.getItem('token');
+			const res = await fetch(`/api/sessions/${sessionId}/participants`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ participants: participantsPayload }) });
+			if(!res.ok){
+				let msg = 'Échec de l\'import'; try{ const d = await res.json(); if(d.message) msg=d.message; }catch{}
+				throw new Error(msg);
+			}
+			const upd = await res.json();
+			setParticipants(upd.participants||[]);
+			setSelected(sel=> sel && sel._id===upd._id? {...sel, participants: upd.participants}: sel);
+			setSessions(list => list.map(s => s._id === upd._id ? { ...s, participants: upd.participants } : s));
+		} catch(e){
+			setImportError(e.message || 'Erreur durant l\'import');
+		} finally { setImporting(false); }
 	};
 
 	const deleteParticipant = async (participant) => {
@@ -723,8 +807,11 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 									<button onClick={()=> setShowParticipants(false)} className="text-gray-500 hover:text-gray-800 text-2xl leading-none">×</button>
 								</div>
 								<div className="flex items-center justify-end gap-3 mb-4">
+									<input id="importParticipantsInput" type="file" accept=".csv,.xls,.xlsx,.json" className="hidden" onChange={e=> { const f=e.target.files?.[0]; if(f) handleImportFile(f); e.target.value=''; }} />
+									<button onClick={()=> document.getElementById('importParticipantsInput').click()} className="border border-[#E4E4E7] px-4 py-2 rounded text-sm text-[#18181B] hover:bg-gray-50" disabled={importing}>{importing? 'Import...' : 'Importer (.csv/.xls/.xlsx/.json)'}</button>
 									<button onClick={()=> { setNewParticipant({ name:'', email:'', phone:'', level:'', countryCode:'+216'}); setShowAddModal(true); }} className="bg-[#F16E00] text-white px-4 py-2 rounded text-sm">+ Ajouter Participant</button>
 								</div>
+								{importError && <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{importError}</div>}
 								<div className="flex-1 overflow-y-auto border rounded-lg" style={{minHeight:'420px'}}>
 									<table className="w-full text-sm">
 										<thead>
@@ -743,9 +830,16 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 													<td className="px-4 py-3 whitespace-nowrap">{p.email}</td>
 													<td className="px-4 py-3 whitespace-nowrap">{p.phone || '—'}</td>
 													<td className="px-4 py-3">
-														<button onClick={()=>togglePresence(p)} className={`w-12 h-6 rounded-full relative transition-colors ${p.presence?'bg-[#24965A]':'bg-gray-300'}`}>
-															<span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${p.presence?'translate-x-6':''}`}></span>
-														</button>
+														{(() => {
+															const isAdmin = user?.role==='admin';
+															const isMentor = user?.role==='odc_mentor' && selected && selected.teacher && ((selected.teacher._id||selected.teacher)===user._id);
+															const canToggle = isAdmin || isMentor;
+															return (
+																<button disabled={!canToggle} onClick={()=> canToggle && togglePresence(p)} className={`w-12 h-6 rounded-full relative transition-colors ${p.presence?'bg-[#24965A]':'bg-gray-300'} ${!canToggle?'opacity-50 cursor-not-allowed':''}`}>
+																	<span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${p.presence?'translate-x-6':''}`}></span>
+																</button>
+															);
+														})()}
 													</td>
 													<td className="px-2 py-3 text-center text-gray-500">
 														<div className="relative inline-block text-left">

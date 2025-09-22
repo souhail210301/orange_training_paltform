@@ -90,7 +90,7 @@ const AboutPage = () => {
                         />
 
                         {/* Orange swooshes overlay */}
-                        <svg className="absolute z-20 top-10 w-[760px] h-[380px]" viewBox="0 0 760 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg className="absolute z-20 top-10 w-[300px] md:top-40 md:w-[760px] h-[380px]" viewBox="0 0 760 380" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M20 60 C 220 10, 420 10, 740 60" stroke="#F16E00" strokeWidth="16" strokeLinecap="round"/>
                             <path d="M0 190 C 240 160, 480 160, 760 200" stroke="#F16E00" strokeWidth="16" strokeLinecap="round"/>
                             <path d="M10 320 C 250 350, 520 320, 750 300" stroke="#F16E00" strokeWidth="16" strokeLinecap="round"/>
@@ -193,8 +193,8 @@ const AboutPage = () => {
                                     <p className="text-[14px] md:text-[15px] leading-6 text-[#1f1f1f] mb-6">
                                         Bénéficiez de formations gratuites proposées par Orange Digital Center, et accédez à un espace dédié pour planifier, suivre et certifier vos sessions.
                                     </p>
-                                    <button
-                                        type="button"
+                                    <a
+                                        href="/students/access-request"
                                         className="inline-flex items-center gap-2 bg-[#F16E00] hover:brightness-95 text-white font-medium rounded-md px-5 h-10"
                                     >
                                         Demander Accès
@@ -202,7 +202,7 @@ const AboutPage = () => {
                                             <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                             <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
 
