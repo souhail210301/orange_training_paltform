@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PhoneInput from './common/PhoneInput';
 import AdminNavbar from './AdminDashboard/AdminNavbar';
 import AdminSidebar from './AdminDashboard/AdminSidebar';
@@ -11,9 +12,20 @@ const tabs = [
 ];
 
 const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
-	const [activeTab, setActiveTab] = useState('profil');
-	// If navigation indicates profile notifications, switch tab
-	useEffect(()=>{ if(activePage === 'profile_notifications') setActiveTab('notifications'); },[activePage]);
+	const navigate = useNavigate();
+	// Derive initial tab from route to avoid extra flips
+	const deriveTab = (ap) => {
+		if (ap === 'profile_notifications') return 'notifications';
+		if (ap === 'profile_password') return 'password';
+		if (ap === 'profile_settings') return 'settings';
+		return 'profil';
+	};
+	const [activeTab, setActiveTab] = useState(() => deriveTab(activePage));
+	// Sync tab from route when activePage changes
+	useEffect(() => {
+		const next = deriveTab(activePage);
+		setActiveTab(prev => (prev !== next ? next : prev));
+	}, [activePage]);
 	const [form, setForm] = useState({ name: '', phone_number: '', email: '' });
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
@@ -91,6 +103,11 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 		</div>
 	);
 
+	// Stable handler to avoid recreating function each render
+	const handlePhoneChange = useCallback((full) => {
+		setForm((f) => (f.phone_number === full ? f : { ...f, phone_number: full }));
+	}, []);
+
 	useEffect(() => {   
 		if (user) {
 			setForm(f => ({ ...f, name: user.name || '', phone_number: user.phone_number || '', email: user.email || '' }));
@@ -157,7 +174,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 							<label className="block text-sm font-medium mb-1">Numéro</label>
 							<PhoneInput
 								value={form.phone_number}
-								onChange={(full) => setForm(f => ({ ...f, phone_number: full }))}
+								onChange={handlePhoneChange}
 							/>
 						</div>
 						<div>
@@ -389,7 +406,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 
 	return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
-			<AdminNavbar onViewAllNotifications={()=> setActiveTab('notifications')} />
+			<AdminNavbar onViewAllNotifications={()=> navigate('/admin/profile?tab=notifications')} />
 			<div className="flex flex-1">
 				<AdminSidebar user={user || { name: form.name, role: 'Administrateur' }} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
 				<div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{ marginLeft: '288px', marginTop: '64px' }}>
@@ -398,7 +415,11 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 							{tabs.map(t => (
 								<button
 									key={t.key}
-									onClick={() => setActiveTab(t.key)}
+									onClick={() => {
+										// Keep URL as source of truth for tab selection
+										if (t.key === 'profil') navigate('/admin/profile');
+										else navigate(`/admin/profile?tab=${t.key}`);
+									}}
 									className={`w-full flex items-center gap-2 text-left px-4 py-2 rounded text-sm font-medium ${activeTab === t.key ? 'bg-orange-500 text-white' : 'hover:bg-gray-100 text-gray-700'}`}
 								>
 									{t.icon && <img src={t.icon} alt={t.alt || t.label} className="w-4 h-4 opacity-80" />}

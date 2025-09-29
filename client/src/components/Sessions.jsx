@@ -117,12 +117,17 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	},[selected]);
 
 		const counts = sessions.reduce((acc,s)=>{ acc.ALL++; acc[s.status]=(acc[s.status]||0)+1; return acc; }, { ALL:0, PENDING:0, CONFIRMED:0, REJECTED:0, COMPLETED:0 });
-		// University rep sees only their requested sessions plus confirmed ones for their formations (simplified: show all for now unless role restricts)
+		// Role-based visibility
 			let visible = sessions;
 			if (user?.role === 'university_representative') {
 				visible = sessions.filter(s => (s.requested_by && s.requested_by._id === user._id));
 			} else if (user?.role === 'odc_mentor') {
-				visible = sessions.filter(s => (s.teacher && (s.teacher._id ? s.teacher._id === user._id : s.teacher === user._id)));
+				// Mentors see sessions where they are assigned as teacher OR listed as a trainer on the catalogue
+				visible = sessions.filter(s => {
+					const isTeacher = !!(s.teacher && ((s.teacher._id || s.teacher) === user._id));
+					const isCatalogueTrainer = !!(s.catalogue && Array.isArray(s.catalogue.trainers) && s.catalogue.trainers.some(t => ((t._id || t) === user._id)));
+					return isTeacher || isCatalogueTrainer;
+				});
 			}
 		const filtered = visible.filter(s => filter==='ALL' || s.status===filter);
 	const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));

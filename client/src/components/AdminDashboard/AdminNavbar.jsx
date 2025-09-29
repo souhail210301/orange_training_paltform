@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AdminNavbar = ({ onViewAllNotifications }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -22,7 +26,15 @@ const AdminNavbar = ({ onViewAllNotifications }) => {
     const id = setInterval(()=>{ if(!open) fetchNotifs(); },30000);
     return ()=> clearInterval(id);
   },[open]);
-  useEffect(()=>{ const handler=(e)=>{ if(open && panelRef.current && !panelRef.current.contains(e.target)) setOpen(false); }; document.addEventListener('mousedown',handler); return ()=>document.removeEventListener('mousedown',handler); },[open]);
+  const profileRef = useRef(null);
+  useEffect(()=>{
+    const handler = (e) => {
+      if (open && panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+      if (profileOpen && profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, profileOpen]);
   return (
   <nav className="w-full bg-white flex items-center justify-between px-8 py-3 shadow-sm fixed top-0 left-0 z-40" style={{height:'64px'}}>
       {/* Logo and title */}
@@ -43,7 +55,7 @@ const AdminNavbar = ({ onViewAllNotifications }) => {
         </div>
       </div>
       {/* Notification and profile */}
-      <div className="flex items-center gap-4">
+  <div className="flex items-center gap-4">
         {/* Notification bell */}
         <div className="relative" ref={panelRef}>
           <button onClick={()=>setOpen(o=>!o)} className="bg-white rounded-full p-2 shadow hover:bg-gray-100 relative">
@@ -112,9 +124,84 @@ const AdminNavbar = ({ onViewAllNotifications }) => {
             </div>
           )}
         </div>
-        {/* Profile icon */}
-        <div className="bg-orange-500 rounded-full p-2 flex items-center justify-center">
-          <img src="/avatar.png" alt="Profile" className="h-7 w-7 object-contain" />
+        {/* Profile dropdown */}
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setProfileOpen((v) => !v)}
+            className="bg-orange-500 rounded-full p-2 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-orange-400"
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+          >
+            <img src="/avatar.png" alt="Profile" className="h-7 w-7 object-contain" />
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 mt-3 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+              <div className="py-1 text-sm">
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-orange-500 hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    // Close first to avoid state churn during route changes
+                    setProfileOpen(false);
+                    const dest = '/admin/profile';
+                    const current = `${location.pathname}${location.search}`;
+                    if (current !== dest) navigate(dest);
+                  }}
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.33 0-10 1.67-10 5v1h20v-1c0-3.33-6.67-5-10-5z"/></svg>
+                  </span>
+                  Profil
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-orange-500 hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    const dest = '/admin/profile?tab=password';
+                    const current = `${location.pathname}${location.search}`;
+                    if (current !== dest) navigate(dest);
+                  }}
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <img src="/lock_icon.png" alt="lock" className="w-4 h-4" />
+                  </span>
+                  Mot de Passe
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-orange-500 hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    // Delegate to parent handler if provided for consistency
+                    setProfileOpen(false);
+                    if (typeof onViewAllNotifications === 'function') {
+                      onViewAllNotifications();
+                    } else {
+                      const dest = '/admin/profile?tab=notifications';
+                      const current = `${location.pathname}${location.search}`;
+                      if (current !== dest) navigate(dest);
+                    }
+                  }}
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <img src="/notif_icon.png" alt="notifications" className="w-4 h-4" />
+                  </span>
+                  Notifications
+                </button>
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-orange-500 hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    const dest = '/admin/profile?tab=settings';
+                    const current = `${location.pathname}${location.search}`;
+                    if (current !== dest) navigate(dest);
+                  }}
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <img src="/settings_icon.png" alt="settings" className="w-4 h-4" />
+                  </span>
+                  Paramètres
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </nav>

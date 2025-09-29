@@ -110,7 +110,10 @@ function App() {
     // Detect query param for notifications tab
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
-    const resolvedPage = tab === 'notifications' ? 'profile_notifications' : activePage;
+    let resolvedPage = activePage;
+    if (tab === 'notifications') resolvedPage = 'profile_notifications';
+    else if (tab === 'password') resolvedPage = 'profile_password';
+    else if (tab === 'settings') resolvedPage = 'profile_settings';
     return <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={resolvedPage} />;
   }
   return <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
