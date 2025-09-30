@@ -21,7 +21,7 @@ const baseNavItems = [
 // Users nav only for admin / prestataire / representative (not for odc_mentor)
 const withUsers = [...baseNavItems, { label: 'Utilisateurs', icon: <Users className="w-5 h-5 mr-2" />, key: 'users' }];
 
-const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout, onNavigate, activePage = 'dashboard' }) => {
+const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout, onNavigate, activePage = 'dashboard', open = true, onClose }) => {
   const navigate = useNavigate();
   const handleNav = (key) => {
     if (onNavigate) return onNavigate(key);
@@ -31,7 +31,16 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
     else navigate('/admin/dashboard');
   };
   return (
-  <aside className="h-screen bg-white flex flex-col justify-between py-4 px-4 w-72 min-w-[16rem] border-r border-gray-100 fixed top-16 left-0 z-30" style={{height:'calc(100vh - 64px)'}}>
+  <>
+    {/* Overlay for mobile */}
+    <div
+      className={`lg:hidden fixed inset-0 bg-black/40 z-40 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      onClick={() => onClose && onClose()}
+    />
+    <aside
+      className={`bg-white flex flex-col justify-between py-4 px-4 w-72 min-w-[16rem] border-r border-gray-100 fixed top-16 left-0 z-50 lg:z-30 transform transition-transform duration-200 ease-out ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      style={{height:'calc(100vh - 64px)'}}
+    >
       <nav className="space-y-2">
         {(user.role === 'odc_mentor' ? baseNavItems : withUsers).map((item) => (
           <button
@@ -62,6 +71,7 @@ const AdminSidebar = ({ user = { name: 'Utilisateur', role: 'Rôle' }, onLogout,
         </div>
       </div>
     </aside>
+  </>
   );
 };
 

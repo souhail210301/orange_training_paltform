@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const AdminNavbar = ({ onViewAllNotifications }) => {
+const AdminNavbar = ({ onViewAllNotifications, onToggleSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -36,9 +36,20 @@ const AdminNavbar = ({ onViewAllNotifications }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [open, profileOpen]);
   return (
-  <nav className="w-full bg-white flex items-center justify-between px-8 py-3 shadow-sm fixed top-0 left-0 z-40" style={{height:'64px'}}>
-      {/* Logo and title */}
-      <div className="flex items-center gap-2">
+  <nav className="w-full bg-white flex items-center justify-between px-4 md:px-8 py-3 shadow-sm fixed top-0 left-0 z-40" style={{height:'64px'}}>
+      {/* Left: hamburger + logo */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger (mobile) */}
+        <button
+          type="button"
+          aria-label="Ouvrir le menu"
+          className="lg:hidden p-2 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          onClick={() => onToggleSidebar && onToggleSidebar()}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
         <img src="/certif_logo.png" alt="Certif Logo" className="h-10 w-auto" />
       </div>
       {/* Search bar */}
@@ -54,8 +65,8 @@ const AdminNavbar = ({ onViewAllNotifications }) => {
           />
         </div>
       </div>
-      {/* Notification and profile */}
-  <div className="flex items-center gap-4">
+    {/* Notification and profile */}
+  <div className="flex items-center gap-3 md:gap-4">
         {/* Notification bell */}
         <div className="relative" ref={panelRef}>
           <button onClick={()=>setOpen(o=>!o)} className="bg-white rounded-full p-2 shadow hover:bg-gray-100 relative">

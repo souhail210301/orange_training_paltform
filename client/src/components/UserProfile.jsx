@@ -404,12 +404,13 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 		}
 	};
 
-	return (
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
-			<AdminNavbar onViewAllNotifications={()=> navigate('/admin/profile?tab=notifications')} />
+			<AdminNavbar onViewAllNotifications={()=> navigate('/admin/profile?tab=notifications')} onToggleSidebar={() => setSidebarOpen(s=>!s)} />
 			<div className="flex flex-1">
-				<AdminSidebar user={user || { name: form.name, role: 'Administrateur' }} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
-				<div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{ marginLeft: '288px', marginTop: '64px' }}>
+				<AdminSidebar user={user || { name: form.name, role: 'Administrateur' }} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} open={sidebarOpen} onClose={()=>setSidebarOpen(false)} />
+				<div className="flex-1 flex flex-col p-6 overflow-y-auto lg:ml-[288px]" style={{ marginTop: '64px' }}>
 					<div className="bg-white rounded-lg shadow p-6 flex">
 						<div className="w-56 border-r pr-4 space-y-1">
 							{tabs.map(t => (

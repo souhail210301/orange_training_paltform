@@ -130,10 +130,10 @@ const LoginPage = ({ onLoginSuccess }) => {
 
                 <button
                   onClick={(e) => handleSubmit(e)}
-                  className="w-full bg-orange-500 text-white py-3 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 font-medium transition-colors"
+                  className="w-full bg-orange-500 text-white py-3 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 font-medium transition-colors disabled:opacity-70"
                   disabled={loading || successLoading}
                 >
-                  {loading ? <LoadingLottie style={{ height: 32, width: 32 }} /> : 'Connexion'}
+                  {loading ? 'Connexion…' : 'Connexion'}
                 </button>
               </div>
             )}
