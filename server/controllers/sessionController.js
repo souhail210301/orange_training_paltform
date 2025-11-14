@@ -8,12 +8,24 @@ const Formation = require('../models/Formation')
 
 const createSession = async (req, res) => {
   try {
-  const { formation, teacher, proposed_dates, scheduled_at, scheduled_end, start_date, end_date, qr_code_data } = req.body
+  const { formation, catalogue, teacher, proposed_dates, scheduled_at, scheduled_end, start_date, end_date, qr_code_data } = req.body
+    console.log('Creating session with:', { formation, catalogue, teacher, proposed_dates, user: req.user?.role });
+    
     // University representative can request session with only formation + proposed dates
-    if (!formation) return res.status(400).json({ message: 'formation is required' })
+    // Admin can create session with catalogue directly (without formation)
+    if (!formation && !catalogue) return res.status(400).json({ message: 'formation or catalogue is required' })
 
-    const formationDoc = await Formation.findById(formation)
-    if (!formationDoc) return res.status(404).json({ message: 'Formation not found' })
+    // Validate formation if provided
+    if (formation) {
+      const formationDoc = await Formation.findById(formation)
+      if (!formationDoc) return res.status(404).json({ message: 'Formation not found' })
+    }
+    
+    // Validate catalogue if provided
+    if (catalogue) {
+      const catalogueDoc = await Catalogue.findById(catalogue)
+      if (!catalogueDoc) return res.status(404).json({ message: 'Catalogue not found' })
+    }
 
     let requested_by = undefined
     let status = 'PENDING'
@@ -29,9 +41,11 @@ const createSession = async (req, res) => {
     }
 
     // Admin can optionally set teacher and schedule on creation
-  const doc = { formation, teacher, proposed_dates: proposed, scheduled_at: start_date || scheduled_at, scheduled_end: end_date || scheduled_end, qr_code_data, requested_by, status }
+  const doc = { formation, catalogue, teacher, proposed_dates: proposed, scheduled_at: start_date || scheduled_at, scheduled_end: end_date || scheduled_end, qr_code_data, requested_by, status }
     const session = await Session.create(doc)
-    const populated = await session
+    
+    // Populate the created session
+    const populated = await Session.findById(session._id)
       .populate('formation')
       .populate('teacher')
       .populate('requested_by')
@@ -42,9 +56,11 @@ const createSession = async (req, res) => {
           { path: 'trainers' }
         ]
       })
+    
     return res.status(201).json(populated)
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to create session' })
+    console.error('Error creating session:', error);
+    return res.status(500).json({ message: 'Failed to create session', error: error.message })
   }
 }
 
@@ -267,19 +283,18 @@ const addParticipants = async (req, res) => {
   }
 }
 
-// Update a participant presence (admin or assigned mentor only)
+  // Update a participant presence (assigned ODC mentor only)
 const setParticipantPresence = async (req, res) => {
   try {
     const { id, participantId } = req.params
     const { presence } = req.body
     const session = await Session.findById(id).select('teacher participants')
     if (!session) return res.status(404).json({ message: 'Session not found' })
-    // Auth: admin or session teacher
-    const isAdmin = req.user && req.user.role === 'admin'
-    const isMentor = req.user && req.user.role === 'odc_mentor' && session.teacher && session.teacher.toString() === req.user._id.toString()
-    if (!isAdmin && !isMentor) {
-      return res.status(403).json({ message: 'Not authorized to update presence for this session' })
-    }
+      // Auth: only the assigned session mentor
+      const isAssignedMentor = req.user && req.user.role === 'odc_mentor' && session.teacher && session.teacher.toString() === req.user._id.toString()
+      if (!isAssignedMentor) {
+        return res.status(403).json({ message: 'Only the assigned ODC mentor can update presence for this session' })
+      }
     // Ensure participant is part of the session
     const partOfSession = session.participants.some(p => p.toString() === participantId)
     if (!partOfSession) {

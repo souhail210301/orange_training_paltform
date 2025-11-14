@@ -9,6 +9,8 @@ import Users from './components/AdminDashboard/Users';
 import Catalogues from './components/AdminDashboard/Catalogues';
 import Sessions from './components/Sessions';
 import UserProfile from './components/UserProfile';
+import Statistics from './components/AdminDashboard/Statistics';
+import ChatbotAssistant from './components/ChatbotAssistant';
 
 
 function App() {
@@ -23,6 +25,7 @@ function App() {
   if (path.startsWith('/admin/users')) activePage = 'users';
   else if (path.startsWith('/admin/catalogue')) activePage = 'catalogue';
   else if (path.startsWith('/admin/sessions')) activePage = 'sessions';
+  else if (path.startsWith('/admin/stats')) activePage = 'stats';
   else if (path.startsWith('/admin/calender') || path.startsWith('/admin/calendar')) activePage = 'calendar';
   else if (path.startsWith('/admin/profile')) activePage = 'profile';
 
@@ -46,6 +49,7 @@ function App() {
     if (page === 'users') navigate('/admin/users');
     else if (page === 'catalogue') navigate('/admin/catalogue');
   else if (page === 'sessions') navigate('/admin/sessions');
+  else if (page === 'stats') navigate('/admin/stats');
   else if (page === 'calendar') navigate('/admin/calender');
     else if (page === 'profile') navigate('/admin/profile');
     else if (page === 'profile_notifications') navigate('/admin/profile?tab=notifications');
@@ -95,16 +99,44 @@ function App() {
       navigate('/admin/catalogue');
       return null;
     }
-    return <Users user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+    return (
+      <>
+        <Users user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+        <ChatbotAssistant />
+      </>
+    );
   }
   if (activePage === 'catalogue') {
-    return <Catalogues user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+    return (
+      <>
+        <Catalogues user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+        <ChatbotAssistant />
+      </>
+    );
   }
   if (activePage === 'sessions') {
-    return <Sessions user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+    return (
+      <>
+        <Sessions user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+        <ChatbotAssistant />
+      </>
+    );
+  }
+  if (activePage === 'stats') {
+    return (
+      <>
+        <Statistics user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+        <ChatbotAssistant />
+      </>
+    );
   }
   if (activePage === 'calendar') {
-    return <Calender user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+    return (
+      <>
+        <Calender user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+        <ChatbotAssistant />
+      </>
+    );
   }
   if (activePage === 'profile') {
     // Detect query param for notifications tab
@@ -114,9 +146,19 @@ function App() {
     if (tab === 'notifications') resolvedPage = 'profile_notifications';
     else if (tab === 'password') resolvedPage = 'profile_password';
     else if (tab === 'settings') resolvedPage = 'profile_settings';
-    return <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={resolvedPage} />;
+    return (
+      <>
+        <UserProfile user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={resolvedPage} />
+        <ChatbotAssistant />
+      </>
+    );
   }
-  return <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />;
+  return (
+    <>
+      <AdminDashboard user={user} onLogout={handleLogout} onNavigate={handleNavigate} activePage={activePage} />
+      <ChatbotAssistant />
+    </>
+  );
 }
 
 export default App

@@ -1,0 +1,96 @@
+%% Mermaid flowchart emulating a Use-Case diagram for the ODC Certification Platform
+%% Render with mermaid-cli (mmdc)
+flowchart LR
+  %% Actors
+  Admin[["Admin"]]
+  Mentor[["ODC Mentor"]]
+  UnivRep[["University Representative"]]
+  Participant[["Participant"]]
+  Partner[["Partner"]]
+
+  %% Authentication
+  subgraph A[Authentication]
+    UC_Login(((Login)))
+    UC_Logout(((Logout)))
+    UC_Reset(((Reset Password)))
+  end
+
+  %% Dashboard
+  subgraph D[Dashboard]
+    UC_ViewDash(((View Dashboard)))
+    UC_ViewNotif(((View Notifications)))
+  end
+
+  %% User Management
+  subgraph U[User Management]
+    UC_ManageUsers(((Manage Users)))
+    UC_ChangeRole(((Change User Role)))
+    UC_DisableUser(((Disable User)))
+  end
+
+  %% Catalogues & Categories
+  subgraph C[Catalogues & Categories]
+    UC_ManageCatalogues(((Manage Catalogues)))
+    UC_ManageCategories(((Manage Categories)))
+  end
+
+  %% Sessions
+  subgraph S[Sessions]
+    UC_CreateSession(((Create/Edit Session)))
+    UC_AssignMentor(((Assign Mentor)))
+    UC_ViewSessions(((View Sessions)))
+  end
+
+  %% Participants & Presence
+  subgraph P[Participants & Presence]
+    UC_AddParticipants(((Add Participants)))
+    UC_MarkPresence(((Mark Presence)))
+  end
+
+  %% Profile & Reports
+  subgraph R[Profile & Reports]
+    UC_EditProfile(((Edit Profile)))
+    UC_ChangePassword(((Change Password)))
+    UC_GenerateReports(((Generate Reports)))
+  end
+
+  %% Actor associations
+  Admin --> UC_Login
+  Mentor --> UC_Login
+  UnivRep --> UC_Login
+  Participant --> UC_Login
+
+  Admin --> UC_ViewDash
+  Mentor --> UC_ViewDash
+  UnivRep --> UC_ViewDash
+  Admin --> UC_ViewNotif
+  Mentor --> UC_ViewNotif
+  UnivRep --> UC_ViewNotif
+
+  Admin --> UC_ManageUsers
+  UC_ManageUsers --> UC_ChangeRole
+  UC_ManageUsers --> UC_DisableUser
+
+  Admin --> UC_ManageCatalogues
+  Admin --> UC_ManageCategories
+  Partner --> UC_ManageCatalogues
+
+  Admin --> UC_CreateSession
+  Admin --> UC_AssignMentor
+  Mentor --> UC_ViewSessions
+  Participant --> UC_ViewSessions
+  UnivRep --> UC_ViewSessions
+
+  UnivRep --> UC_AddParticipants
+  Mentor --> UC_MarkPresence
+
+  Admin --> UC_EditProfile
+  Mentor --> UC_EditProfile
+  UnivRep --> UC_EditProfile
+
+  Admin --> UC_GenerateReports
+  Mentor --> UC_GenerateReports
+
+  %% Constraints / notes
+  UC_MarkPresence -. requires assigned mentor .-> UC_AssignMentor
+  classDef note fill:#fff,stroke:#aaa,color:#555;

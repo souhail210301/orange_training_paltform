@@ -1,0 +1,181 @@
+%% Mermaid class diagram for ODC Certification Platform backend domain
+classDiagram
+  %% Entities
+  class User {
+    +ObjectId _id
+    +ObjectId user_id
+    +String name
+    +String email
+    -String password
+    +String phone_number
+    +Boolean disabled
+  +String role
+    +Date created_at
+    +Date last_login
+    +String resetPasswordToken
+    +Date resetPasswordExpire
+  }
+  note for User "role in {admin, odc_mentor, prestataire, university_representative}"
+
+  class UniversityRepresentative {
+    +ObjectId university
+    +Number max_requests
+  }
+
+  class University {
+    +Number id_university
+    +String name
+  }
+
+  class Formation {
+    +String code
+    +String title
+    +String syllabus_url
+    +String objectives
+    +String prerequisites
+    +String[] course_languages
+    +String[] support_languages
+    +String[] technologies
+    +ObjectId category
+    +String final_status
+  }
+  note for Formation "final_status in {PENDING, APPROVED, REJECTED}"
+
+  class Catalogue {
+    +String coverImage
+    +String title
+    +ObjectId[] trainers
+    +ObjectId created_by
+    +String objectives
+    +Day[] program
+    +String prerequisites
+    +String language
+    +String level
+    +String type
+    +String[] technologies
+  }
+  class Day {
+    +String description
+    +Slot[] sessions
+  }
+  class Slot {
+    +String from
+    +String to
+    +String description
+  }
+
+  class Category {
+    +String name
+    +ObjectId catalogue
+  }
+
+  class Session {
+    +ObjectId formation
+    +ObjectId catalogue
+    +ObjectId teacher
+    +ObjectId requested_by
+  +DateRange[] proposed_dates
+    +Date scheduled_at
+    +Date scheduled_end
+  +String status
+    +String rejection_reason
+    +String qr_code_data
+    +ObjectId[] participants
+    +Boolean participants_confirmed
+    %% virtuals: start_date, end_date
+  }
+  note for Session "status in {PENDING, CONFIRMED, REJECTED, COMPLETED}"
+
+  class Participant {
+    +ObjectId session
+    +String name
+    +String email
+    +String countryCode
+    +String phone
+    +String level
+    +String gender
+    +Boolean presence
+  }
+
+  class TrainingRequest {
+    +String request_type
+    +ObjectId formation
+    +ObjectId catalogue
+    +ObjectId university
+    +ObjectId requested_by
+    +ObjectId approved_by
+  +String status
+    +String comment
+  +DateRange[] requested_weeks
+    +Date alternative_date
+  }
+  note for TrainingRequest "request_type in {NEW, MODIFICATION}; status in {PENDING, APPROVED, REJECTED}"
+
+  class Notification {
+    +String type
+    +String title
+    +String body
+    +ObjectId actor
+    +ObjectId trainingRequest
+    +ObjectId catalogue
+  +String inviteStatus
+    +ObjectId recipient
+    +Boolean read
+  }
+  note for Notification "type in {TRAINING_REQUEST, TRAINING_REQUEST_STATUS, MENTOR_INVITE, MENTOR_INVITE_RESPONSE}; inviteStatus in {PENDING, ACCEPTED, DECLINED}"
+
+  class Certificate {
+    +ObjectId participant
+    +ObjectId session
+    +Date issue_date
+    +String verification_token
+  }
+
+  class Feedback {
+    +ObjectId participant
+    +ObjectId session
+    +Number rating
+    +String comment
+  }
+
+  class DateRange {
+    +Date from
+    +Date to
+  }
+
+  %% Inheritance (Mongoose discriminator)
+  User <|-- UniversityRepresentative
+
+  %% Relationships
+  UniversityRepresentative --> University : university 1
+  Formation --> Category : category 0..1
+  Category --> Catalogue : catalogue 1
+
+  Catalogue "1" o-- "*" Day : program
+  Day "1" o-- "*" Slot : sessions
+  Catalogue --> User : trainers *
+  Catalogue --> User : created_by 1
+
+  Session --> Formation : formation 0..1
+  Session --> Catalogue : catalogue 0..1
+  Session --> User : teacher 0..1
+  Session --> User : requested_by 0..1
+  Session "1" o-- "*" Participant : participants
+  Participant --> Session : session 1
+
+  TrainingRequest --> Formation : formation 0..1
+  TrainingRequest --> Catalogue : catalogue 0..1
+  TrainingRequest --> University : university 0..1
+  TrainingRequest --> User : requested_by 1
+  TrainingRequest --> User : approved_by 0..1
+
+  Notification --> User : actor 0..1
+  Notification --> TrainingRequest : trainingRequest 0..1
+  Notification --> Catalogue : catalogue 0..1
+  Notification --> User : recipient 1
+
+  Certificate --> Participant : participant 1
+  Certificate --> Session : session 1
+
+  Feedback --> Participant : participant 1
+  Feedback --> Session : session 1

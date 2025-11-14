@@ -3,7 +3,7 @@ import ImageUploadCard from './ImageUploadCard';
 import ImageCropperModal from './ImageCropperModal';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus, FileText } from 'lucide-react';
 import CatalogueDetails from './CatalogueDetails';
 
 const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur' }, onLogout, onNavigate, activePage = 'catalogue' }) => {
@@ -54,6 +54,8 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
   const [techInput, setTechInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // AI PDF generation state
+  const [generatingPDF, setGeneratingPDF] = useState(null);
   // Image upload/crop modal state
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
@@ -84,6 +86,57 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
       fetchCatalogues();
     }
   }, [showAddPage, editCatalogue]);
+
+  // AI PDF Generation Handler
+  const handleGenerateAIPDF = async (catalogueId, catalogueTitle, e) => {
+    e.stopPropagation(); // Prevent card click event
+    setGeneratingPDF(catalogueId);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/ai/catalogue/${catalogueId}/plan-pdf`, {
+        method: 'GET',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+
+      if (!response.ok) {
+        // Try to get error details from response
+        const contentType = response.headers.get('content-type');
+        let errorMessage = 'Échec de la génération du PDF';
+        
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+          
+          // Add helpful hint if it's an API key issue
+          if (errorMessage.toLowerCase().includes('api key')) {
+            errorMessage += '\n\nVeuillez ajouter OPENAI_API_KEY dans le fichier .env du serveur.';
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Plan_Formation_${catalogueTitle.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      alert(`Erreur: ${error.message}`);
+    } finally {
+      setGeneratingPDF(null);
+    }
+  };
 
   const [selectedCatalogueId, setSelectedCatalogueId] = useState(null);
 
@@ -593,12 +646,25 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                       <h4 className="font-semibold text-gray-900 mb-2 text-base leading-tight">
                         {cat.objectives}
                       </h4>
-                      <div className="flex items-center justify-between text-base">
+                      <div className="flex items-center justify-between text-base mb-3">
                         <span className="text-gray-700">Durée: {cat.program && cat.program.length ? cat.program.length : 1} jour{cat.program && cat.program.length > 1 ? 's' : ''}</span>
                         <span className="px-3 py-1 rounded text-xs font-bold bg-orange-500 text-white">
                           {cat.type}
                         </span>
                       </div>
+                      {/* AI PDF Generation Button */}
+                      {user.role !== 'odc_mentor' && (
+                        <button
+                          onClick={(e) => handleGenerateAIPDF(cat._id, cat.title, e)}
+                          disabled={generatingPDF === cat._id}
+                          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2.5 rounded-lg hover:from-orange-600 hover:to-orange-700 font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FileText size={16} />
+                          {generatingPDF === cat._id 
+                            ? 'Génération en cours...' 
+                            : 'Générer Plan de Formation (AI)'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

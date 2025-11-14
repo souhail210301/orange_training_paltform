@@ -1,0 +1,180 @@
+%% Diagramme de classes (Mermaid) — Version Française
+classDiagram
+  %% Entités (identifiants FR dédiés pour ce diagramme)
+  class Utilisateur {
+    +ObjectId _id
+    +ObjectId id_utilisateur
+    +String nom
+    +String email
+    -String mot_de_passe
+    +String numero_telephone
+    +Boolean desactive
+    +String role
+    +Date cree_le
+    +Date derniere_connexion
+    +String jeton_reinit_mdp
+    +Date expiration_reinit_mdp
+  }
+  note for Utilisateur "rôle dans {admin, mentor_odc, prestataire, representant_universite}"
+
+  class RepresentantUniversite {
+    +ObjectId universite
+    +Number demandes_max
+  }
+
+  class Universite {
+    +Number id_universite
+    +String nom
+  }
+
+  class Formation {
+    +String code
+    +String titre
+    +String url_syllabus
+    +String objectifs
+    +String prerequis
+    +String[] langues_cours
+    +String[] langues_support
+    +String[] technologies
+    +ObjectId categorie
+    +String statut_final
+  }
+  note for Formation "statut_final dans {EN_ATTENTE, APPROUVEE, REJETEE}"
+
+  class Catalogue {
+    +String image_couverture
+    +String titre
+    +ObjectId[] formateurs
+    +ObjectId cree_par
+    +String objectifs
+    +Jour[] programme
+    +String prerequis
+    +String langue
+    +String niveau
+    +String type
+    +String[] technologies
+  }
+  class Jour {
+    +String description
+    +Creneau[] creneaux
+  }
+  class Creneau {
+    +String de
+    +String a
+    +String description
+  }
+
+  class Categorie {
+    +String nom
+    +ObjectId catalogue
+  }
+
+  class Session {
+    +ObjectId formation
+    +ObjectId catalogue
+    +ObjectId formateur
+    +ObjectId demande_par
+    +PlageDates[] plages_proposees
+    +Date date_debut
+    +Date date_fin
+    +String statut
+    +String raison_rejet
+    +String donnees_qr_code
+    +ObjectId[] participants
+    +Boolean participants_confirmes
+  }
+  note for Session "statut dans {EN_ATTENTE, CONFIRMEE, REJETEE, TERMINEE}"
+
+  class PlageDates {
+    +Date de
+    +Date a
+  }
+
+  class Participant {
+    +ObjectId session
+    +String nom
+    +String email
+    +String code_pays
+    +String telephone
+    +String niveau
+    +String genre
+    +Boolean presence
+  }
+
+  class DemandeFormation {
+    +String type_demande
+    +ObjectId formation
+    +ObjectId catalogue
+    +ObjectId universite
+    +ObjectId demande_par
+    +ObjectId approuve_par
+    +String statut
+    +String commentaire
+    +PlageDates[] semaines_demandees
+    +Date date_alternative
+  }
+  note for DemandeFormation "type_demande dans {NOUVELLE, MODIFICATION}; statut dans {EN_ATTENTE, APPROUVEE, REJETEE}"
+
+  class Notification {
+    +String type
+    +String titre
+    +String contenu
+    +ObjectId acteur
+    +ObjectId demandeFormation
+    +ObjectId catalogue
+    +String statutInvitation
+    +ObjectId destinataire
+    +Boolean lu
+  }
+  note for Notification "type dans {DEMANDE_FORMATION, STATUT_DEMANDE_FORMATION, INVITATION_MENTOR, REPONSE_INVITATION_MENTOR}; statutInvitation dans {EN_ATTENTE, ACCEPTEE, REFUSEE}"
+
+  class Certificat {
+    +ObjectId participant
+    +ObjectId session
+    +Date date_emission
+    +String jeton_verification
+  }
+
+  class Retour {
+    +ObjectId participant
+    +ObjectId session
+    +Number note
+    +String commentaire
+  }
+
+  %% Héritage (discriminateur Mongoose)
+  Utilisateur <|-- RepresentantUniversite
+
+  %% Relations
+  RepresentantUniversite --> Universite : universite 1
+  Formation --> Categorie : categorie 0..1
+  Categorie --> Catalogue : catalogue 1
+
+  Catalogue "1" o-- "*" Jour : programme
+  Jour "1" o-- "*" Creneau : creneaux
+  Catalogue --> Utilisateur : formateurs *
+  Catalogue --> Utilisateur : cree_par 1
+
+  Session --> Formation : formation 0..1
+  Session --> Catalogue : catalogue 0..1
+  Session --> Utilisateur : formateur 0..1
+  Session --> Utilisateur : demande_par 0..1
+  Session "1" o-- "*" Participant : participants
+  Participant --> Session : session 1
+
+  DemandeFormation --> Formation : formation 0..1
+  DemandeFormation --> Catalogue : catalogue 0..1
+  DemandeFormation --> Universite : universite 0..1
+  DemandeFormation --> Utilisateur : demande_par 1
+  DemandeFormation --> Utilisateur : approuve_par 0..1
+
+  Notification --> Utilisateur : acteur 0..1
+  Notification --> DemandeFormation : demandeFormation 0..1
+  Notification --> Catalogue : catalogue 0..1
+  Notification --> Utilisateur : destinataire 1
+
+  Certificat --> Participant : participant 1
+  Certificat --> Session : session 1
+
+  Retour --> Participant : participant 1
+  Retour --> Session : session 1

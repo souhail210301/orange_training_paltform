@@ -22,6 +22,7 @@ const router = createBrowserRouter([
   { path: '/admin/users', element: <App /> },
   { path: '/admin/catalogue', element: <App /> },
   { path: '/admin/sessions', element: <App /> },
+  { path: '/admin/stats', element: <App /> },
   { path: '/admin/calender', element: <App /> },
   { path: '/admin/calendar', element: <App /> },
   { path: '/admin/profile', element: <App /> },

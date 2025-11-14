@@ -11,6 +11,9 @@ const universityRoutes = require('./routes/universityRoutes');
 const universityRepresentativeRoutes = require('./routes/universityRepresentativeRoutes');
 const trainingRequestRoutes = require('./routes/trainingRequestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const statisticsRoutes = require('./routes/statisticsRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const chatbotRoutes = require('./routes/chatbotRoutes');
 
 
 // Load environment variables
@@ -40,6 +43,9 @@ app.use('/api/universities', universityRoutes);
 app.use('/api/university-reps', universityRepresentativeRoutes);
 app.use('/api/training-requests', trainingRequestRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/statistics', statisticsRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 
 

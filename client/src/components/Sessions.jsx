@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import AdminNavbar from './AdminDashboard/AdminNavbar';
 import AdminSidebar from './AdminDashboard/AdminSidebar';
+import AddSessionModal from './AdminDashboard/AddSessionModal';
+import ConfirmAddSessionModal from './AdminDashboard/ConfirmAddSessionModal';
+import RejectSessionModal from './AdminDashboard/RejectSessionModal';
+import ConfirmRejectSessionModal from './AdminDashboard/ConfirmRejectSessionModal';
+import RequestSessionModal from './AdminDashboard/RequestSessionModal';
+import ConfirmRequestSessionModal from './AdminDashboard/ConfirmRequestSessionModal';
 import * as XLSX from 'xlsx';
 
 const STATUS_META = {
@@ -41,6 +47,20 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	const [participantsSessionId, setParticipantsSessionId] = useState(null);
 	const [importing, setImporting] = useState(false);
 	const [importError, setImportError] = useState(null);
+
+	// Session CRUD modals
+	const [showAddSessionModal, setShowAddSessionModal] = useState(false);
+	const [showConfirmAddModal, setShowConfirmAddModal] = useState(false);
+	const [showRejectModal, setShowRejectModal] = useState(false);
+	const [showConfirmRejectModal, setShowConfirmRejectModal] = useState(false);
+	const [sessionToAdd, setSessionToAdd] = useState(null);
+	const [sessionToReject, setSessionToReject] = useState(null);
+	const [rejectionReason, setRejectionReason] = useState('');
+
+	// University rep request session modals
+	const [showRequestSessionModal, setShowRequestSessionModal] = useState(false);
+	const [showConfirmRequestModal, setShowConfirmRequestModal] = useState(false);
+	const [sessionToRequest, setSessionToRequest] = useState(null);
 
 	// Reset / initialize date range when selected session changes
 	useEffect(()=>{
@@ -189,6 +209,152 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		if(!rangeDraft.start) return false;
 		if(rangeDraft.start && !rangeDraft.end) return date.getTime()===rangeDraft.start.getTime();
 		return date >= rangeDraft.start && date <= rangeDraft.end;
+	};
+
+	// Add Session Handlers
+	const handleAddSessionClick = () => {
+		setShowAddSessionModal(true);
+	};
+
+	const handleAddSessionSubmit = (formData) => {
+		setSessionToAdd(formData);
+		setShowAddSessionModal(false);
+		setShowConfirmAddModal(true);
+	};
+
+	const handleConfirmAddSession = async () => {
+		if (!sessionToAdd) return;
+
+		try {
+			const token = localStorage.getItem('token');
+			const body = {
+				catalogue: sessionToAdd.catalogue,
+				proposed_dates: [
+					{
+						from: sessionToAdd.dateFrom,
+						to: sessionToAdd.dateTo
+					}
+				]
+			};
+
+			const res = await fetch('/api/sessions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: token ? `Bearer ${token}` : ''
+				},
+				body: JSON.stringify(body)
+			});
+
+			if (res.ok) {
+				const created = await res.json();
+				setSessions(s => [created, ...s]);
+				setShowConfirmAddModal(false);
+				setSessionToAdd(null);
+				setFilter('PENDING');
+			} else {
+				const errorData = await res.json().catch(() => ({}));
+				console.error('Error creating session:', res.status, errorData);
+				alert(`Erreur lors de la création de la session: ${errorData.message || 'Erreur inconnue'}`);
+			}
+		} catch (error) {
+			console.error('Error creating session:', error);
+			alert('Erreur réseau');
+		}
+	};
+
+	// Reject Session Handlers
+	const handleRejectClick = (session) => {
+		setSessionToReject(session);
+		setShowRejectModal(true);
+	};
+
+	const handleRejectSubmit = (reason) => {
+		setRejectionReason(reason);
+		setShowRejectModal(false);
+		setShowConfirmRejectModal(true);
+	};
+
+	const handleConfirmReject = async () => {
+		if (!sessionToReject) return;
+
+		try {
+			const token = localStorage.getItem('token');
+			const body = {
+				status: 'REJECTED',
+				rejection_reason: rejectionReason
+			};
+
+			const res = await fetch(`/api/sessions/${sessionToReject._id}/status`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: token ? `Bearer ${token}` : ''
+				},
+				body: JSON.stringify(body)
+			});
+
+			if (res.ok) {
+				const updated = await res.json();
+				setSessions(s => s.map(x => x._id === sessionToReject._id ? { ...x, ...updated } : x));
+				setSelected(sel => sel && sel._id === sessionToReject._id ? { ...sel, ...updated } : sel);
+				setShowConfirmRejectModal(false);
+				setSessionToReject(null);
+				setRejectionReason('');
+			} else {
+				alert('Erreur lors du rejet de la session');
+			}
+		} catch (error) {
+			console.error('Error rejecting session:', error);
+			alert('Erreur réseau');
+		}
+	};
+
+	// University Representative Request Session Handlers
+	const handleRequestSessionClick = () => {
+		setShowRequestSessionModal(true);
+	};
+
+	const handleRequestSessionSubmit = (requestData) => {
+		setSessionToRequest(requestData);
+		setShowRequestSessionModal(false);
+		setShowConfirmRequestModal(true);
+	};
+
+	const handleConfirmRequestSession = async () => {
+		if (!sessionToRequest) return;
+
+		try {
+			const token = localStorage.getItem('token');
+			const body = {
+				catalogue: sessionToRequest.catalogue,
+				proposed_dates: sessionToRequest.proposed_dates
+			};
+
+			const res = await fetch('/api/sessions', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: token ? `Bearer ${token}` : ''
+				},
+				body: JSON.stringify(body)
+			});
+
+			if (res.ok) {
+				const created = await res.json();
+				setSessions(s => [created, ...s]);
+				setShowConfirmRequestModal(false);
+				setSessionToRequest(null);
+				setFilter('PENDING');
+			} else {
+				const errorData = await res.json().catch(() => ({}));
+				console.error('Error requesting session:', res.status, errorData);
+				alert(`Erreur lors de la demande de session: ${errorData.message || 'Erreur inconnue'}`);
+			}
+		} catch (error) {
+			console.error('Error requesting session:', error);
+			alert('Erreur réseau');
+		}
 	};
 
 	const scheduleRange = async () => {
@@ -342,8 +508,23 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	};
 	const togglePresence = async (p) => {
 		const token = localStorage.getItem('token');
-		setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: !x.presence}:x));
-		await fetch(`/api/sessions/${selected._id}/participants/${p._id}/presence`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ presence: !p.presence }) });
+		const nextPresence = !p.presence;
+		// optimistic update
+		setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: nextPresence}:x));
+		try {
+			const res = await fetch(`/api/sessions/${selected._id}/participants/${p._id}/presence`, {
+				method:'PATCH',
+				headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' },
+				body: JSON.stringify({ presence: nextPresence })
+			});
+			if(!res.ok){
+				// revert on failure (e.g., 403 when not assigned mentor)
+				setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: p.presence}:x));
+			}
+		} catch(e){
+			// revert on network error
+			setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: p.presence}:x));
+		}
 	};
 
 	// Import participants from CSV/XLS/XLSX/JSON
@@ -440,20 +621,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 								return <button key={k} onClick={()=>{setFilter(k); setPage(1);}} className={`px-4 py-1.5 rounded transition-colors ${active? 'bg-white shadow text-gray-900':'text-gray-600 hover:text-gray-900'}`}>{label} <span className="text-xs font-normal">({count})</span></button>;
 							})}
 						</div>
-									{user?.role==='admin' && <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-medium">+ Ajouter une session</button>}
-									{user?.role==='university_representative' && <button onClick={async ()=>{
-										const formationId = prompt('Entrer ID de la formation');
-										if(!formationId) return;
-										const date1From = prompt('Proposition 1 - date début (YYYY-MM-DD)');
-										const date1To = prompt('Proposition 1 - date fin (YYYY-MM-DD)');
-										const body = { formation: formationId, proposed_dates: [] };
-										if(date1From && date1To) body.proposed_dates.push({ from: date1From, to: date1To });
-										const date2From = prompt('Proposition 2 - date début (optionnel)');
-										if(date2From){ const date2To = prompt('Proposition 2 - date fin'); if(date2To) body.proposed_dates.push({ from: date2From, to: date2To }); }
-										const token = localStorage.getItem('token');
-										const res = await fetch('/api/sessions', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify(body) });
-										if(res.ok){ const created = await res.json(); setSessions(s=>[created, ...s]); setFilter('PENDING'); }
-									}} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-medium">+ Demander une session</button>}
+									{user?.role==='admin' && <button onClick={handleAddSessionClick} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-medium">+ Ajouter une session</button>}
+									{user?.role==='university_representative' && <button onClick={handleRequestSessionClick} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-medium">+ Demander une session</button>}
 					</div>
 					<div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
 						{/* List redesigned */}
@@ -686,13 +855,13 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 									<div className="flex gap-8 w-full">
 										{user?.role==='admin' && selected.status==='PENDING' && (
 											<>
-												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED', rejection_reason: rejectionReasonDraft }:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Rejeter</button>
+												<button onClick={() => handleRejectClick(selected)} className="flex-1 border border-[#A1A1AA] rounded text-[16px] py-2 text-[#18181B]">Rejeter</button>
 												<button onClick={confirmCurrent} className="flex-1 bg-[#F16E00] rounded text-white text-[16px] py-2">Confirmer</button>
 											</>
 										)}
 										{user?.role==='admin' && selected.status==='CONFIRMED' && (
 											<>
-												<button onClick={()=>{updateStatus(selected._id,'REJECTED'); setSelected(sel=> sel?{...sel, status:'REJECTED', rejection_reason: rejectionReasonDraft }:sel);}} className="flex-1 border border-[#A1A1AA] rounded text-[14px] py-2 text-[#18181B]">Annuler</button>
+												<button onClick={() => handleRejectClick(selected)} className="flex-1 border border-[#A1A1AA] rounded text-[14px] py-2 text-[#18181B]">Annuler</button>
 												<button onClick={()=>{updateStatus(selected._id,'COMPLETED'); setSelected(sel=> sel?{...sel, status:'COMPLETED'}:sel);}} className="flex-1 bg-[#F16E00] rounded text-white text-[14px] py-2">Clôturer</button>
 											</>
 										)}
@@ -836,9 +1005,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 													<td className="px-4 py-3 whitespace-nowrap">{p.phone || '—'}</td>
 													<td className="px-4 py-3">
 														{(() => {
-															const isAdmin = user?.role==='admin';
 															const isMentor = user?.role==='odc_mentor' && selected && selected.teacher && ((selected.teacher._id||selected.teacher)===user._id);
-															const canToggle = isAdmin || isMentor;
+															const canToggle = isMentor;
 															return (
 																<button disabled={!canToggle} onClick={()=> canToggle && togglePresence(p)} className={`w-12 h-6 rounded-full relative transition-colors ${p.presence?'bg-[#24965A]':'bg-gray-300'} ${!canToggle?'opacity-50 cursor-not-allowed':''}`}>
 																	<span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${p.presence?'translate-x-6':''}`}></span>
@@ -875,6 +1043,68 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 								</div>
 							</div>
 						</div>
+					)}
+
+					{/* Add Session Modal */}
+					{showAddSessionModal && (
+						<AddSessionModal
+							onCancel={() => setShowAddSessionModal(false)}
+							onConfirm={handleAddSessionSubmit}
+						/>
+					)}
+
+					{/* Confirm Add Session Modal */}
+					{showConfirmAddModal && (
+						<ConfirmAddSessionModal
+							onCancel={() => {
+								setShowConfirmAddModal(false);
+								setSessionToAdd(null);
+							}}
+							onConfirm={handleConfirmAddSession}
+						/>
+					)}
+
+					{/* Reject Session Modal */}
+					{showRejectModal && (
+						<RejectSessionModal
+							onCancel={() => {
+								setShowRejectModal(false);
+								setSessionToReject(null);
+							}}
+							onConfirm={handleRejectSubmit}
+							sessionTitle={sessionToReject?.catalogue?.title || 'Session'}
+						/>
+					)}
+
+					{/* Confirm Reject Session Modal */}
+					{showConfirmRejectModal && (
+						<ConfirmRejectSessionModal
+							onCancel={() => {
+								setShowConfirmRejectModal(false);
+								setRejectionReason('');
+							}}
+							onConfirm={handleConfirmReject}
+						/>
+					)}
+
+					{/* Request Session Modal (University Representative) */}
+					{showRequestSessionModal && (
+						<RequestSessionModal
+							onCancel={() => setShowRequestSessionModal(false)}
+							onConfirm={handleRequestSessionSubmit}
+						/>
+					)}
+
+					{/* Confirm Request Session Modal */}
+					{showConfirmRequestModal && (
+						<ConfirmRequestSessionModal
+							onCancel={() => {
+								setShowConfirmRequestModal(false);
+								setSessionToRequest(null);
+							}}
+							onConfirm={handleConfirmRequestSession}
+							catalogueTitle={sessionToRequest?.catalogueTitle}
+						/>
 					)}
 
 				</div>
