@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+// dotenv is loaded in server.js before this module is required
 const connectDB = async () => {
   try {
     mongoose.connect(process.env.MONGO_URI);

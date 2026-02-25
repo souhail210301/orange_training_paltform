@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import deleteLogo from '../../../public/delete_logo.png';
-import disableLogo from '../../../public/disable_logo.png';
+// Public assets referenced directly — no imports needed for /public folder
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
 
@@ -526,7 +525,7 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
               &times;
             </button>
             <h2 className="text-xl font-semibold mb-4">Supprimer Utilisateur</h2>
-            <img src={deleteLogo} alt="delete" className="mx-auto mb-4" style={{ width: 120, height: 120 }} />
+            <img src="/delete_logo.png" alt="delete" className="mx-auto mb-4" style={{ width: 120, height: 120 }} />
             <p className="mb-2">Êtes-vous sûr de vouloir supprimer <b>{userToDelete.name}</b>?</p>
             <p className="mb-6 text-gray-500">Cette action est définitive.</p>
             {deleteError && <div className="text-red-500 text-sm mb-2">{deleteError}</div>}
@@ -591,7 +590,7 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
               &times;
             </button>
             <h2 className="text-xl font-semibold mb-4">{userToDisable.disabled ? 'Activer Utilisateur' : 'Désactiver Utilisateur'}</h2>
-            <img src={disableLogo} alt="disable" className="mx-auto mb-4" style={{ width: 120, height: 120 }} />
+            <img src="/disable_logo.png" alt="disable" className="mx-auto mb-4" style={{ width: 120, height: 120 }} />
             <p className="mb-2">Êtes-vous sûr de vouloir {userToDisable.disabled ? 'activer' : 'désactiver'} <b>{userToDisable.name}</b>?</p>
             <p className="mb-6 text-gray-500">Cette action est définitive.</p>
             {disableError && <div className="text-red-500 text-sm mb-2">{disableError}</div>}

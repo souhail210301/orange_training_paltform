@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState('');
@@ -70,7 +70,7 @@ const ForgetPassword = () => {
               </div>
               <button type="submit" className="w-full bg-orange-500 text-white py-3 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 font-medium transition-colors">Réinitialiser le mot de passe</button>
               <div className="text-center mt-4">
-                <a href="/" className="text-orange-500 text-sm hover:text-orange-600 underline">Retour à Connexion</a>
+                <Link to="/login" className="text-orange-500 text-sm hover:text-orange-600 underline">Retour à Connexion</Link>
               </div>
             </form>
           </div>

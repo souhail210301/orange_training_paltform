@@ -1,3 +1,13 @@
+// controllers/userController.js
+const User = require('../models/User');
+const UniversityRepresentative = require('../models/UniversityRepresentative');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
+
 // Disable or enable a user
 const disableUser = async (req, res) => {
   try {
@@ -26,14 +36,6 @@ const getUserStats = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors du chargement des statistiques', error: error.message });
   }
 };
-const User = require('../models/User')
-const UniversityRepresentative = require('../models/UniversityRepresentative')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const crypto = require('crypto'); // For generating tokens
-const nodemailer = require('nodemailer'); // For sending emails
-const fs = require('fs');
-const path = require('path');
 
 // Utility: load logo once for embedding in emails
 let _emailLogoCache = null; // { buffer, filename, cid }
@@ -498,10 +500,7 @@ const updateUser = async (req, res) => {
 
     const currentRole = existing.role;
     const newRole = req.body.role ?? currentRole;
-    const repModel = require('../models/UniversityRepresentative');
-    const UserModel = require('../models/User');
-  const existingHashedPassword = existing.password; // hashed, keep as-is
-
+    const existingHashedPassword = existing.password; // keep hashed password for doc recreation
     const changingToRep = newRole === 'university_representative' && currentRole !== 'university_representative';
     const changingFromRep = currentRole === 'university_representative' && newRole !== 'university_representative';
 
@@ -516,7 +515,7 @@ const updateUser = async (req, res) => {
     if (changingToRep) {
       // Delete old doc then recreate as discriminator to avoid mixed schema validation issues
       await User.findByIdAndDelete(userId);
-      workingDoc = new repModel({
+      workingDoc = new UniversityRepresentative({
         _id: userId,
         name: req.body.name ?? existing.name,
         email: req.body.email ?? existing.email,
@@ -528,7 +527,7 @@ const updateUser = async (req, res) => {
     } else if (changingFromRep) {
       // Remove old discriminator doc then recreate as plain user
       await User.findByIdAndDelete(userId);
-      workingDoc = new UserModel({
+      workingDoc = new User({
         _id: userId,
         name: req.body.name ?? existing.name,
         email: req.body.email ?? existing.email,
@@ -570,10 +569,11 @@ const updateUser = async (req, res) => {
 // Admin: Delete user
 const deleteUser = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id)
-    res.json({ message: 'User deleted' })
+    const deleted = await User.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted' });
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting user' })
+    res.status(500).json({ message: 'Error deleting user' });
   }
 }
 

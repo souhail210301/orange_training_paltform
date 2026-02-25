@@ -11,7 +11,8 @@ const {
   forgotPassword,
   resetPassword,
   getEmailByResetToken,
-  getUserStats
+  getUserStats,
+  disableUser
 } = require('../controllers/userController');
 // Public stats endpoint for dashboard
 
@@ -35,6 +36,6 @@ router.get('/role/:role', getUserByRole);
 router.delete('/:id', protect, adminOnly, deleteUser);
 
 // Disable/enable user
-router.patch('/:id/disable', protect, adminOnly, require('../controllers/userController').disableUser);
+router.patch('/:id/disable', protect, adminOnly, disableUser);
 
 module.exports = router;

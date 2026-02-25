@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle, Sparkles, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ChatbotAssistant = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -23,7 +25,8 @@ const ChatbotAssistant = () => {
     if (isOpen && messages.length === 0) {
       loadGreeting();
     }
-  }, [isOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // intentionally omit messages to avoid re-triggering after first load
 
   const loadGreeting = async () => {
     try {
@@ -186,7 +189,10 @@ const ChatbotAssistant = () => {
                         <div
                           key={idx}
                           className="bg-white p-3 rounded-lg border border-orange-200 hover:border-orange-400 transition-colors cursor-pointer"
-                          onClick={() => window.location.href = `/catalogues/${suggestion.id}`}
+                          onClick={() => {
+                            sessionStorage.setItem('openCatalogueId', suggestion.id);
+                            navigate('/admin/catalogue');
+                          }}
                         >
                           <p className="font-semibold text-sm text-gray-800">{suggestion.title}</p>
                           <div className="flex gap-2 mt-1">

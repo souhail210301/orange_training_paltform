@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,7 +46,8 @@ const ResetPasswordPage = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccess('Mot de passe réinitialisé avec succès !');
+        setSuccess('Mot de passe réinitialisé avec succès ! Redirection vers la connexion...');
+        setTimeout(() => navigate('/login'), 2000);
       } else {
         setError(data.message || 'Erreur lors de la réinitialisation du mot de passe.');
       }
@@ -120,6 +122,9 @@ const ResetPasswordPage = () => {
               >
                 Changer le mot de passe
               </button>
+              <div className="text-center mt-2">
+                <Link to="/login" className="text-orange-500 text-sm hover:text-orange-600 underline">Retour à la connexion</Link>
+              </div>
             </form>
           </div>
         </div>

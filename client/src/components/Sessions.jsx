@@ -158,7 +158,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		const token = localStorage.getItem('token');
 		// capture previous status before optimistic update
 		const prevStatus = sessions.find(x=>x._id===id)?.status;
-		const prev = sessions; setSessions(s=>s.map(x=>x._id===id?{...x,status, rejection_reason: status==='REJECTED'? rejectionReasonDraft: s.rejection_reason }:x));
+		const prev = sessions; setSessions(s=>s.map(x=>x._id===id?{...x,status, rejection_reason: status==='REJECTED'? rejectionReasonDraft: x.rejection_reason }:x));
 		const body = { status };
 		if(status==='REJECTED' && rejectionReasonDraft.trim()) body.rejection_reason = rejectionReasonDraft.trim();
 		const res = await fetch(`/api/sessions/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json',Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify(body) });
@@ -166,10 +166,6 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 			const upd = await res.json();
 			setSessions(s=> s.map(x=> x._id===id? { ...x, ...upd }: x));
 			setSelected(sel => sel && sel._id===id? {...sel, ...upd}: sel);
-			// if current filter was the old status and row moved to new status, adjust filter so it remains visible
-			if(filter !== 'ALL' && prevStatus && prevStatus !== upd.status && filter === prevStatus){
-				setFilter(upd.status); // switch to new status tab automatically
-			}
 		} else {
 			setSessions(prev);
 		}

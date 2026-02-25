@@ -87,11 +87,6 @@ function App() {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Public login route
-  if (path === '/login') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
   // Render admin pages
   if (activePage === 'users') {
     if (user?.role === 'odc_mentor') {

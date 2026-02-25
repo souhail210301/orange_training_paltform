@@ -2,5 +2,10 @@
 module.exports = function (err, req, res, next) {
   console.error('--- Express Error ---');
   console.error(err.stack || err);
-  res.status(500).json({ message: 'Server error', error: err.message, stack: err.stack });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(err.status || 500).json({
+    message: err.message || 'Server error',
+    // Only expose stack trace in development
+    ...(isProd ? {} : { error: err.message, stack: err.stack })
+  });
 };

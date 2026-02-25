@@ -93,7 +93,7 @@ const WeekView = ({ weekDays, filteredSessions, openDayModal }) => {
 				))}
 			</div>
 			{/* Body grid */}
-			<div className="relative flex flex-1" style={{height:'768px'}}>
+			<div className="relative flex flex-1" style={{minHeight:'660px'}}>
 				{weekDays.map((d,i)=>(
 					<div key={i} className="h-full border-b border-r border-[#E4E4E7] flex flex-col" style={{width:`${100/7}%`, borderLeft: i===0?'1px solid #E4E4E7':'none'}}>
 						<div className="px-3 pt-2 pb-1 text-[16px] font-medium text-black">{String(d.getDate()).padStart(2,'0')}</div>
@@ -285,8 +285,8 @@ const Calender = ({ user, onLogout, onNavigate, activePage }) => {
 				<div className="flex flex-1" style={{ marginTop: '64px' }}>
 					<AdminSidebar user={user} onLogout={onLogout} onNavigate={onNavigate} activePage={activePage} />
 					<div className="flex-1 flex flex-col p-6 overflow-y-auto" style={{ marginLeft: '288px' }}>
-						<div className="w-full h-full overflow-x-auto" style={{ fontFamily: 'Helvetica Neue, Arial, sans-serif' }}>
-							<div className="mx-auto w-full max-w-[1200px]" style={{minWidth:'0'}}>
+						<div className="w-full" style={{ fontFamily: 'Helvetica Neue, Arial, sans-serif' }}>
+							<div className="mx-auto w-full max-w-[1400px]">
 			<h2 className="text-xl font-semibold mb-4">{viewMode === 'MONTH' ? monthLabel : weekRangeLabel}</h2>
 								<div className="flex items-center justify-between w-full mb-4" style={{height:'36px'}}>
 									{/* Status segmented control */}
@@ -328,19 +328,19 @@ const Calender = ({ user, onLogout, onNavigate, activePage }) => {
 									</div>
 								</div>
 
-								<div className="flex w-full" style={{ height: '760px' }}>
+								<div className="flex w-full" style={{ minHeight: '600px' }}>
 									{/* Left column: Trainers */}
-									<div className="flex flex-col w-60 h-full">
-										<div className="flex items-center justify-center h-12 bg-[#F16E00] border-y border-r border-[#E4E4E7] rounded-tl-lg">
+									<div className="flex flex-col w-60">
+										<div className="flex items-center justify-center h-12 bg-[#F16E00] border-y border-r border-[#E4E4E7] rounded-tl-lg flex-shrink-0">
 											<span className="text-white text-[16px] font-medium">Formateurs</span>
 										</div>
-										<div className="flex-1 bg-white border border-[#E4E4E7] rounded-bl-lg overflow-y-auto">
+										<div className="bg-white border border-t-0 border-[#E4E4E7] rounded-bl-lg overflow-y-auto flex-1">
 											{loading && <div className="p-4 text-sm text-gray-500">Chargement...</div>}
 											{!loading && trainers.length === 0 && (
 												<div className="p-4 text-sm text-gray-500">Aucun formateur</div>
 											)}
 											{!loading && trainers.map((t, idx) => (
-												<div key={idx} className="flex items-center gap-2 px-4" style={{ height: '56px', borderLeft: '1px solid #E4E4E7' }}>
+												<div key={idx} className="flex items-center gap-2 px-4" style={{ height: '56px', borderTop: idx > 0 ? '1px solid #E4E4E7' : 'none' }}>
 													<TrainerAvatar name={t.name} />
 													<div className="text-[16px] text-[#050505] truncate">{t.name}</div>
 												</div>
@@ -349,19 +349,19 @@ const Calender = ({ user, onLogout, onNavigate, activePage }) => {
 									</div>
 
 									{/* Right: Calendar grid */}
-									<div className="flex-1 flex flex-col overflow-hidden">
+									<div className="flex-1 flex flex-col min-w-0">
 										{viewMode==='MONTH' && (
 											<>
 											{/* Header days */}
-											<div className="grid grid-cols-7 h-12">
+											<div className="grid grid-cols-7 flex-shrink-0">
 												{dayNames.map((n, i) => (
-													<div key={n} className={`flex items-center justify-center h-12 bg-[#F16E00] text-white text-[16px] font-medium ${i === 0 ? 'border-l' : ''} ${i === 6 ? 'rounded-tr-lg' : ''}`} style={{ borderLeft: '1px solid #E4E4E7', borderRight: i === 6 ? '1px solid #E4E4E7' : 'none' }}>
+													<div key={n} className={`flex items-center justify-center h-12 bg-[#F16E00] text-white text-[16px] font-medium border-[#E4E4E7] ${i === 6 ? 'rounded-tr-lg border-r' : ''}`} style={{ borderLeft: '1px solid #E4E4E7', borderTop: '1px solid #E4E4E7', borderBottom: '1px solid #E4E4E7' }}>
 														{n}
 													</div>
 												))}
 											</div>
 											{/* 6 weeks */}
-											<div className="grid grid-rows-6" style={{ height: '768px' }}>
+											<div className="grid grid-rows-6 flex-1">
 												{Array.from({ length: 6 }).map((_, row) => (
 													<div key={row} className="grid grid-cols-7">
 														{Array.from({ length: 7 }).map((__, col) => {
@@ -374,12 +374,12 @@ const Calender = ({ user, onLogout, onNavigate, activePage }) => {
 															return (
 															<div
 																key={col}
-																className="flex flex-col gap-1 border border-[#E4E4E7] p-3 cursor-pointer hover:bg-gray-100 transition-colors"
-																style={{ height: '128px', background: outStyle }}
+																className="flex flex-col gap-1 border border-[#E4E4E7] p-2 cursor-pointer hover:bg-gray-100 transition-colors overflow-hidden"
+																style={{ minHeight: '110px', background: outStyle }}
 																onClick={()=> openDayModal(day)}
 															>
-																<div className="text-[16px] font-medium" style={{ color: textColor }}>{String(day.getDate()).padStart(2, '0')}</div>
-																<div className="flex flex-col gap-1 overflow-hidden">
+																<div className="text-[16px] font-medium flex-shrink-0" style={{ color: textColor }}>{String(day.getDate()).padStart(2, '0')}</div>
+																<div className="flex flex-col gap-1 overflow-hidden min-h-0">
 																	{evts.map((e, i) => <EventTag key={i} text={e.label} color={e.color} />)}
 																</div>
 															</div>

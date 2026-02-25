@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+// This file is kept for backwards compatibility.
+// The canonical implementation is in ResetPassword.jsx
+export { default } from './ResetPassword.jsx';
+
 
 const ResetPasswordPage = () => {
   const { token } = useParams();

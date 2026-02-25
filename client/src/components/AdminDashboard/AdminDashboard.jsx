@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
-import { Users, List, Calendar, ChevronRight } from 'lucide-react';
+import { Users, List, Calendar, ChevronRight, Pencil } from 'lucide-react';
 
 const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, activePage }) => {
   const [userStats, setUserStats] = useState({
@@ -75,6 +75,15 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     fetchCategories();
   }, []);
 
+  // Fetch mentors for trainer names on catalogue cards
+  const [mentors, setMentors] = useState([]);
+  useEffect(() => {
+    fetch('/api/users/role/odc_mentor')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setMentors(d); })
+      .catch(() => {});
+  }, []);
+
   // Fetch catalogues
   useEffect(() => {
     const fetchCatalogues = async () => {
@@ -138,11 +147,11 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     fetchSessions();
   }, []);
 
-  // Recent sessions (limit 10 latest by start date)
+  // Recent sessions (limit 4 latest by start date)
   const recentSessions = useMemo(() => {
     return [...sessions]
       .sort((a, b) => new Date(b.start_date || b.startDate) - new Date(a.start_date || a.startDate))
-      .slice(0, 10);
+      .slice(0, 4);
   }, [sessions]);
 
   // Calendar day generation
@@ -208,12 +217,18 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
 
   const statusBadge = (status) => {
     const norm = (status || '').toUpperCase();
-    let color = 'bg-gray-100 text-gray-700';
-    if (norm.includes('PEND') || norm === 'EN ATTENTE') color = 'bg-orange-100 text-orange-700';
-    else if (norm.includes('CONF') || norm === 'APPROVED') color = 'bg-green-100 text-green-700';
-    else if (norm.includes('TERM') || norm === 'DONE') color = 'bg-blue-100 text-blue-700';
-    else if (norm.includes('REJ') || norm === 'REJECTED') color = 'bg-red-100 text-red-700';
-    return <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>{status || '—'}</span>;
+    let bg = '#A0A0A0';
+    let label = status || '—';
+    if (norm === 'PENDING') { bg = '#F88826'; label = 'En Attente'; }
+    else if (norm === 'CONFIRMED') { bg = '#24965A'; label = 'Confirmé'; }
+    else if (norm === 'COMPLETED') { bg = '#4B4BD3'; label = 'Terminé'; }
+    else if (norm === 'REJECTED') { bg = '#F84545'; label = 'Rejeté'; }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-white text-xs font-medium" style={{ background: bg }}>
+        <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>
+        {label}
+      </span>
+    );
   };
 
   const formatDate = (d) => {
@@ -352,120 +367,126 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
 
           {/* Table and Calendar section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Sessions Table (dynamic) */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">Les sessions récentes:</h2>
-                {errorSessions && <div className="text-sm text-red-600 mb-2">{errorSessions}</div>}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left border-b border-gray-200">
-                        <th className="py-3 text-white bg-orange-500 px-3 font-medium">Formation</th>
-                        <th className="py-3 text-white bg-orange-500 px-3 font-medium">De</th>
-                        <th className="py-3 text-white bg-orange-500 px-3 font-medium">Jusqu'à</th>
-                        <th className="py-3 text-white bg-orange-500 px-3 font-medium">État</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingSessions && (
-                        <tr><td colSpan="4" className="py-6 text-center text-gray-500">Chargement...</td></tr>
-                      )}
-                      {!loadingSessions && recentSessions.length === 0 && (
-                        <tr><td colSpan="4" className="py-6 text-center text-gray-500">Aucune session.</td></tr>
-                      )}
-                      {!loadingSessions && recentSessions.map(s => {
-                        // Derive a display name:
-                        // 1. formation.name/title (populated)
-                        // 2. s.title or s.name
-                        // 3. catalogue?.title/name (if any future field)
-                        // 4. fallback 'Session sans titre'
-                        let formationName = 'Session sans titre';
-                        if (s.formation && (s.formation.name || s.formation.title)) {
-                          formationName = s.formation.name || s.formation.title;
-                        } else if (s.title || s.name) {
-                          formationName = s.title || s.name;
-                        } else if (s.catalogue && (s.catalogue.title || s.catalogue.name)) {
-                          formationName = s.catalogue.title || s.catalogue.name;
-                        }
-                        return (
-                          <tr key={s._id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-3 text-gray-700 truncate max-w-[180px]" title={formationName}>{formationName}</td>
-                            <td className="py-3 px-3 text-gray-600">{formatDate(s.start_date || s.startDate)}</td>
-                            <td className="py-3 px-3 text-gray-600">{formatDate(s.end_date || s.endDate)}</td>
-                            <td className="py-3 px-3">{statusBadge(s.status)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="mt-4 text-right">
-                  <button className="text-orange-500 hover:text-orange-600 font-medium" onClick={() => onNavigate && onNavigate('sessions')}>Voir Plus</button>
-                </div>
+            {/* Sessions Table */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-5 pt-5 pb-2">
+                <h2 className="font-bold text-gray-900 text-base mb-4">Les sessions récentes:</h2>
+              </div>
+              {errorSessions && <div className="text-sm text-red-600 px-5 mb-2">{errorSessions}</div>}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="py-3 px-4 text-left text-white font-medium bg-[#F16E00] text-sm">Formation</th>
+                      <th className="py-3 px-4 text-left text-white font-medium bg-[#F16E00] text-sm">De</th>
+                      <th className="py-3 px-4 text-left text-white font-medium bg-[#F16E00] text-sm">Jusqu'à</th>
+                      <th className="py-3 px-4 text-left text-white font-medium bg-[#F16E00] text-sm">Etat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingSessions && (
+                      <tr><td colSpan="4" className="py-8 text-center text-gray-400 text-sm">Chargement...</td></tr>
+                    )}
+                    {!loadingSessions && recentSessions.length === 0 && (
+                      <tr><td colSpan="4" className="py-8 text-center text-gray-400 text-sm">Aucune session.</td></tr>
+                    )}
+                    {!loadingSessions && recentSessions.map(s => {
+                      let formationName = 'Session sans titre';
+                      let orgName = '';
+                      if (s.formation && (s.formation.name || s.formation.title)) {
+                        formationName = s.formation.name || s.formation.title;
+                        orgName = s.formation.organization || s.formation.university || '';
+                      } else if (s.catalogue && (s.catalogue.title || s.catalogue.name)) {
+                        formationName = s.catalogue.title || s.catalogue.name;
+                        orgName = s.catalogue.created_by?.university?.name || '';
+                      } else if (s.title || s.name) {
+                        formationName = s.title || s.name;
+                      }
+                      if (!orgName && s.requested_by?.university?.name) orgName = s.requested_by.university.name;
+                      return (
+                        <tr key={s._id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => onNavigate && onNavigate('sessions')}>
+                          <td className="py-3 px-4">
+                            <div className="text-gray-800 text-sm truncate max-w-[180px]" title={formationName}>{formationName}</div>
+                            {orgName && <div className="text-gray-400 text-xs truncate max-w-[180px]">{orgName}</div>}
+                          </td>
+                          <td className="py-3 px-4 text-gray-700 text-sm whitespace-nowrap">{formatDate(s.start_date || s.startDate)}</td>
+                          <td className="py-3 px-4 text-gray-700 text-sm whitespace-nowrap">{formatDate(s.end_date || s.endDate)}</td>
+                          <td className="py-3 px-4">{statusBadge(s.status)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="py-4 text-center">
+                <button className="text-[#F16E00] hover:text-orange-600 font-medium text-sm" onClick={() => onNavigate && onNavigate('sessions')}>Voir Plus</button>
               </div>
             </div>
-            {/* Calendar (dynamic) */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-gray-900">{monthLabel}</h3>
-                <div className="flex gap-2">
-                  <button className="text-gray-400 hover:text-gray-600" onClick={() => setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} title="Mois précédent">
-                    <ChevronRight className="w-5 h-5 rotate-180" />
-                  </button>
-                  <button className="text-gray-400 hover:text-gray-600" onClick={() => setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} title="Mois suivant">
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
+
+            {/* Calendar */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <button className="text-gray-500 hover:text-gray-800 p-1" onClick={() => setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
+                  <ChevronRight className="w-4 h-4 rotate-180" />
+                </button>
+                <span className="font-semibold text-gray-900 text-sm">{monthLabel}</span>
+                <button className="text-gray-500 hover:text-gray-800 p-1" onClick={() => setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map((day) => (
-                  <div key={day} className="p-2 font-medium text-gray-600">{day}</div>
+              <div className="grid grid-cols-7 text-center">
+                {['lu','ma','me','je','ve','sa','di'].map(day => (
+                  <div key={day} className="py-2 text-xs text-gray-500 font-medium">{day}</div>
                 ))}
                 {monthMeta.cells.map(cell => {
                   const key = cell.key;
                   const daySessions = sessionsByDay[key] || [];
-                  const hasSessions = daySessions.length > 0;
-                  const isToday = key === today.toISOString().slice(0,10);
+                  const hasSession = daySessions.length > 0;
+                  const isToday = key === today.toISOString().slice(0, 10);
+                  // pick dot colour from first session status
+                  const dotColor = hasSession
+                    ? (daySessions[0].status === 'CONFIRMED' ? '#24965A' : daySessions[0].status === 'COMPLETED' ? '#4B4BD3' : daySessions[0].status === 'REJECTED' ? '#F84545' : '#F88826')
+                    : null;
                   return (
                     <div
                       key={key}
-                      className={`p-1.5 h-16 flex flex-col items-center justify-start rounded relative select-none transition-colors ${cell.inCurrent ? 'text-gray-700 hover:bg-gray-100 cursor-pointer' : 'text-gray-300'} ${isToday && 'ring-1 ring-orange-400'}`}
-                      title={hasSessions ? `${daySessions.length} session(s)` : ''}
-                      onClick={() => {
-                        if (hasSessions && onNavigate) onNavigate('sessions');
-                      }}
+                      className={`relative flex flex-col items-center pt-2 pb-1 select-none ${
+                        cell.inCurrent ? 'text-gray-800 cursor-pointer hover:bg-gray-50' : 'text-gray-300'
+                      } ${isToday ? 'font-bold' : ''}`}
+                      style={{ height: '52px' }}
+                      onClick={() => hasSession && onNavigate && onNavigate('sessions')}
                     >
-                      <span className={`text-xs ${!cell.inCurrent && 'opacity-60'}`}>{cell.label}</span>
-                      <div className="mt-1 flex flex-col gap-0.5 w-full items-center">
-                        {daySessions.slice(0,2).map(s => (
-                          <span key={s._id} className="w-2 h-2 rounded-full bg-orange-500"></span>
-                        ))}
-                        {daySessions.length > 2 && <span className="text-[9px] text-orange-600">+{daySessions.length - 2}</span>}
-                      </div>
+                      <span className="text-xs leading-none">{cell.label}</span>
+                      {hasSession && cell.inCurrent && (
+                        <span className="mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }}></span>
+                      )}
                     </div>
                   );
                 })}
               </div>
-              {loadingSessions && <div className="text-xs text-gray-500 mt-2">Chargement des sessions...</div>}
             </div>
           </div>
 
-          {/* Catalogue section */}
-          
-
-          {/* Dynamic Catalogue Cards */}
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Catalogues Récents</h2>
-            <button onClick={() => onNavigate && onNavigate('catalogue')} className="text-orange-500 text-sm hover:text-orange-600 font-medium">Voir tout</button>
+          {/* Recent Catalogues / Sessions section */}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-bold text-gray-900 text-base">Les sessions récentes:</h2>
+            <button
+              onClick={() => onNavigate && onNavigate('catalogue')}
+              className="flex items-center gap-2 bg-[#F16E00] hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded"
+            >
+              <Pencil className="w-4 h-4" />
+              Modifier Le Catalogue
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {loadingCatalogues && Array.from({ length: 4 }).map((_,i) => (
-              <div key={i} className="bg-white rounded-lg shadow p-4 animate-pulse h-64 flex flex-col gap-3">
-                <div className="h-32 rounded bg-gray-200" />
-                <div className="h-4 w-3/4 bg-gray-200 rounded" />
-                <div className="h-3 w-1/2 bg-gray-200 rounded" />
-                <div className="h-3 w-2/3 bg-gray-200 rounded" />
+            {loadingCatalogues && Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl overflow-hidden animate-pulse" style={{ background: '#1a1a1a', minHeight: '320px' }}>
+                <div className="h-48 bg-gray-800" />
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="h-3 w-1/2 bg-gray-700 rounded" />
+                  <div className="h-4 w-3/4 bg-gray-700 rounded" />
+                  <div className="h-3 w-2/3 bg-gray-700 rounded" />
+                </div>
               </div>
             ))}
             {!loadingCatalogues && errorCatalogues && (
@@ -474,38 +495,80 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
             {!loadingCatalogues && !errorCatalogues && catalogues.length === 0 && (
               <div className="col-span-full text-sm text-gray-500">Aucun catalogue disponible.</div>
             )}
-            {!loadingCatalogues && !errorCatalogues && catalogues.slice(0,4).map((c, idx) => {
-              const title = c.title || 'Catalogue sans titre';
-              const level = c.level || '—';
-              const language = c.language || c.type || '—';
-              const objectives = c.objectives || c.prerequisites || 'Aucun objectif.';
-              const trainersCount = c.trainers ? c.trainers.length : 0;
-              const techs = Array.isArray(c.technologies) ? c.technologies.slice(0,3).join(', ') : '';
-              const badge = techs || language;
-              const gradients = [
-                'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600',
-                'bg-gradient-to-br from-teal-500 via-emerald-500 to-green-500',
-                'bg-gradient-to-br from-orange-600 via-red-600 to-pink-600',
-                'bg-gradient-to-br from-blue-500 via-cyan-500 to-sky-500'
-              ];
-              const bgImage = gradients[idx % gradients.length];
+            {!loadingCatalogues && !errorCatalogues && catalogues.slice(0, 4).map((cat) => {
+              const trainer = cat.trainers && cat.trainers.length > 0
+                ? mentors.find(m => m._id === (cat.trainers[0]?._id || cat.trainers[0]))
+                : null;
+              const programDays = cat.program?.length || 1;
               return (
-                <div key={c._id || idx} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className={`h-40 ${bgImage} flex items-center justify-center relative`}>
-                    <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                    <div className="relative text-white font-bold text-lg text-center px-4 truncate w-full">
-                      {title}
+                <div
+                  key={cat._id}
+                  className="rounded-xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                  onClick={() => onNavigate && onNavigate('catalogue')}
+                >
+                  {/* Black card top */}
+                  <div className="relative bg-black flex flex-col justify-between p-5" style={{ minHeight: '200px' }}>
+                    {cat.coverImage && (
+                      <div className="absolute inset-0 opacity-10">
+                        <img src={cat.coverImage} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    {/* Atom illustration */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg width="120" height="120" viewBox="0 0 130 130">
+                        <ellipse cx="65" cy="65" rx="56" ry="22" fill="none" stroke="#F5C400" strokeWidth="4.5"/>
+                        <ellipse cx="65" cy="65" rx="22" ry="56" fill="none" stroke="#00AAFF" strokeWidth="4.5"/>
+                        <ellipse cx="65" cy="65" rx="48" ry="19" fill="none" stroke="#FF6EC7" strokeWidth="4.5" transform="rotate(52 65 65)"/>
+                        <ellipse cx="65" cy="56" rx="15" ry="5.5" fill="#F16E00"/>
+                        <rect x="50" y="56" width="30" height="9" fill="#F16E00"/>
+                        <ellipse cx="65" cy="65" rx="15" ry="5.5" fill="#D45E00"/>
+                        <rect x="50" y="65" width="30" height="9" fill="#D45E00"/>
+                        <ellipse cx="65" cy="74" rx="15" ry="5.5" fill="#F16E00"/>
+                      </svg>
+                    </div>
+                    {/* Top row */}
+                    <div className="relative z-10 flex justify-between items-start">
+                      <span className="text-xs font-semibold tracking-wide">
+                        <span className="text-orange-400">Orange </span>
+                        <span className="text-white">Digital Center</span>
+                      </span>
+                      <svg className="w-4 h-4 text-white opacity-60" fill="currentColor" viewBox="0 0 4 20">
+                        <circle cx="2" cy="2" r="2"/><circle cx="2" cy="10" r="2"/><circle cx="2" cy="18" r="2"/>
+                      </svg>
+                    </div>
+                    {/* Title + type */}
+                    <div className="relative z-10 mt-3" style={{ maxWidth: '58%' }}>
+                      <h3 className="font-bold text-orange-400 leading-tight" style={{ fontSize: '1.25rem' }}>
+                        {cat.title}
+                      </h3>
+                      <div className="text-white text-xs font-semibold mt-1">{cat.type || 'Formation en ligne'}</div>
+                      {cat.level && <div className="text-gray-300 text-xs mt-0.5">{cat.level}</div>}
+                    </div>
+                    {/* Trainer */}
+                    <div className="relative z-10 mt-4 flex items-end justify-between">
+                      <div>
+                        <div className="text-orange-400 text-xs font-semibold">Assurée par :</div>
+                        {trainer ? (
+                          <>
+                            <div className="text-white text-xs font-bold mt-0.5">{trainer.name}</div>
+                            {(trainer.description || trainer.speciality) && (
+                              <div className="text-gray-400 text-xs mt-0.5 truncate" style={{ maxWidth: '150px' }}>{trainer.description || trainer.speciality}</div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-white text-xs mt-0.5">Aucun Formateur</div>
+                        )}
+                      </div>
+                      <img src="/orange_logo.png" alt="Orange" className="h-7 w-7 object-contain self-end" />
                     </div>
                   </div>
-                  <div className="p-4 flex flex-col h-40">
-                    <div className="text-xs text-gray-500 mb-2 flex justify-between"><span>{level}</span><span className="text-[10px] text-gray-400">{trainersCount} formateur{trainersCount>1?'s':''}</span></div>
-                    <h3 className="font-semibold text-gray-900 mb-2 text-sm leading-tight line-clamp-2">{title}</h3>
-                    <p className="text-gray-600 text-xs mb-3 line-clamp-3 flex-1">{objectives}</p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="text-[11px] text-gray-500 truncate max-w-[90px]">{badge}</span>
-                      <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-[10px] font-medium truncate max-w-[90px]">
-                        {language}
-                      </span>
+                  {/* White card bottom */}
+                  <div className="bg-white p-4">
+                    <div className="text-xs text-gray-400 mb-1">{cat.level || 'Niveau Basique'}</div>
+                    <h4 className="font-semibold text-gray-900 text-sm leading-snug mb-3 line-clamp-2">{cat.title}</h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Durée: {programDays} jour{programDays > 1 ? 's' : ''}</span>
+                      <span className="px-3 py-1 rounded text-xs font-bold text-white" style={{ background: '#F16E00' }}>{cat.type || 'Autre'}</span>
                     </div>
                   </div>
                 </div>

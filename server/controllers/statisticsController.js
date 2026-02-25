@@ -176,8 +176,6 @@ exports.getStatistics = async (req, res) => {
 // Get filter options for dropdowns
 exports.getFilterOptions = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    
     // Get all teachers (formateurs)
     const teachers = await User.find({ role: 'odc_mentor' }).select('name _id');
     

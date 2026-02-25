@@ -3,7 +3,7 @@ import ImageUploadCard from './ImageUploadCard';
 import ImageCropperModal from './ImageCropperModal';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
-import { ChevronDown, Plus, FileText } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import CatalogueDetails from './CatalogueDetails';
 
 const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur' }, onLogout, onNavigate, activePage = 'catalogue' }) => {
@@ -574,7 +574,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
               </div>
 
               {/* Catalogue Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {loadingCatalogues ? (
                   <div className="col-span-full text-center text-gray-500">Chargement...</div>
                 ) : catalogues
@@ -594,80 +594,96 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                       (!selectedType || cat.type === selectedType)
                     );
                   })
-                  .map((cat) => (
-                    <div
-                      key={cat._id}
-                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group cursor-pointer"
-                      onClick={() => setSelectedCatalogueId(cat._id)}
-                    >
-                    {/* Header with dark bg, atom icon, Orange branding, and menu */}
-                    <div className="relative h-44 bg-black flex flex-col justify-between p-5 pb-3">
-                      {/* Orange Digital Center */}
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-semibold text-orange-400 tracking-wide">Orange <span className="text-white">Digital Center</span></span>
-                        <button className="text-white opacity-70 hover:opacity-100"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="4" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="10" cy="16" r="2"/></svg></button>
-                      </div>
-                      {/* Atom icon */}
-                      <div className="absolute right-4 bottom-10">
-                        <svg className="w-20 h-20 opacity-80" viewBox="0 0 100 100">
-                          <ellipse cx="50" cy="50" rx="38" ry="15" fill="none" stroke="#ffb800" strokeWidth="3"/>
-                          <ellipse cx="50" cy="50" rx="15" ry="38" fill="none" stroke="#00baff" strokeWidth="3"/>
-                          <ellipse cx="50" cy="50" rx="30" ry="10" fill="none" stroke="#ff6ad5" strokeWidth="3" transform="rotate(45 50 50)"/>
-                          <circle cx="50" cy="50" r="10" fill="#ffb800" stroke="#000" strokeWidth="2"/>
-                        </svg>
-                      </div>
-                      {/* Title and subtitle */}
-                      <div className="z-10">
-                        <h3 className="font-bold text-2xl text-orange-400 mb-1">{cat.title}</h3>
-                        <div className="text-white text-sm font-medium">Formation en ligne</div>
-                        <div className="text-white text-xs mt-1">Du 22 au 24 Août</div>
-                      </div>
-                      {/* Trainer info */}
-                      <div className="mt-2 flex items-center gap-2 z-10">
-                        <div className="text-orange-400 text-xs font-semibold">Assurée par :</div>
-                        <div className="text-white text-xs font-medium truncate">
-                          {/* Show first trainer name if available */}
-                          {cat.trainers && cat.trainers.length > 0 ? (
-                            <span>{mentors.find(m => m._id === (cat.trainers[0]?._id || cat.trainers[0]))?.name || 'Aucun Formateur'}</span>
-                          ) : 'Aucun Formateur'}
+                  .map((cat) => {
+                    const trainer = cat.trainers && cat.trainers.length > 0
+                      ? mentors.find(m => m._id === (cat.trainers[0]?._id || cat.trainers[0]))
+                      : null;
+                    return (
+                      <div
+                        key={cat._id}
+                        className="relative bg-black rounded-xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                        style={{ minHeight: '200px' }}
+                        onClick={() => setSelectedCatalogueId(cat._id)}
+                      >
+                        {/* Cover image overlay (subtle) */}
+                        {cat.coverImage && (
+                          <div className="absolute inset-0 opacity-10">
+                            <img src={cat.coverImage} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+
+                        {/* Atom illustration — right side */}
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg width="150" height="150" viewBox="0 0 130 130">
+                            {/* Rings */}
+                            <ellipse cx="65" cy="65" rx="56" ry="22" fill="none" stroke="#F5C400" strokeWidth="4.5"/>
+                            <ellipse cx="65" cy="65" rx="22" ry="56" fill="none" stroke="#00AAFF" strokeWidth="4.5"/>
+                            <ellipse cx="65" cy="65" rx="48" ry="19" fill="none" stroke="#FF6EC7" strokeWidth="4.5" transform="rotate(52 65 65)"/>
+                            {/* Database stack center */}
+                            <ellipse cx="65" cy="56" rx="15" ry="5.5" fill="#F16E00"/>
+                            <rect x="50" y="56" width="30" height="9" fill="#F16E00"/>
+                            <ellipse cx="65" cy="65" rx="15" ry="5.5" fill="#D45E00"/>
+                            <rect x="50" y="65" width="30" height="9" fill="#D45E00"/>
+                            <ellipse cx="65" cy="74" rx="15" ry="5.5" fill="#F16E00"/>
+                          </svg>
+                        </div>
+
+                        {/* Card content */}
+                        <div className="relative z-10 flex flex-col justify-between p-5" style={{ minHeight: '200px' }}>
+                          {/* Top row */}
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-semibold tracking-wide">
+                              <span className="text-orange-400">Orange </span>
+                              <span className="text-white">Digital Center</span>
+                            </span>
+                            <button
+                              className="text-white opacity-60 hover:opacity-100 p-1 rounded"
+                              onClick={e => { e.stopPropagation(); handleGenerateAIPDF(cat._id, cat.title, e); }}
+                              title={generatingPDF === cat._id ? 'Génération...' : 'Générer PDF'}
+                            >
+                              {generatingPDF === cat._id
+                                ? <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20"/></svg>
+                                : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 4 20"><circle cx="2" cy="2" r="2"/><circle cx="2" cy="10" r="2"/><circle cx="2" cy="18" r="2"/></svg>
+                              }
+                            </button>
+                          </div>
+
+                          {/* Title + type + level */}
+                          <div className="mt-3" style={{ maxWidth: '58%' }}>
+                            <h3 className="font-bold text-orange-400 leading-tight" style={{ fontSize: '1.55rem' }}>
+                              {cat.title}
+                            </h3>
+                            <div className="text-white text-sm font-semibold mt-1">
+                              {cat.type || 'Formation en ligne'}
+                            </div>
+                            {cat.level && (
+                              <div className="text-gray-300 text-xs mt-0.5">{cat.level}</div>
+                            )}
+                          </div>
+
+                          {/* Trainer info */}
+                          <div className="mt-4 flex items-end justify-between">
+                            <div>
+                              <div className="text-orange-400 text-xs font-semibold">Assurée par :</div>
+                              {trainer ? (
+                                <>
+                                  <div className="text-white text-sm font-bold mt-0.5">{trainer.name}</div>
+                                  {(trainer.description || trainer.speciality) && (
+                                    <div className="text-gray-400 text-xs mt-0.5 truncate" style={{ maxWidth: '200px' }}>
+                                      {trainer.description || trainer.speciality}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="text-white text-sm mt-0.5">Aucun Formateur</div>
+                              )}
+                            </div>
+                            <img src="/orange_logo.png" alt="Orange" className="h-8 w-8 object-contain self-end" />
+                          </div>
                         </div>
                       </div>
-                      <div className="absolute bottom-2 right-2">
-                        <img src="/orange_logo.png" alt="Orange Logo" className="h-6 w-6 object-contain" />
-                      </div>
-                    </div>
-                    {/* Details */}
-                    <div className="p-4">
-                      <div className="mb-2">
-                        <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                          {cat.level}
-                        </span>
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-2 text-base leading-tight">
-                        {cat.objectives}
-                      </h4>
-                      <div className="flex items-center justify-between text-base mb-3">
-                        <span className="text-gray-700">Durée: {cat.program && cat.program.length ? cat.program.length : 1} jour{cat.program && cat.program.length > 1 ? 's' : ''}</span>
-                        <span className="px-3 py-1 rounded text-xs font-bold bg-orange-500 text-white">
-                          {cat.type}
-                        </span>
-                      </div>
-                      {/* AI PDF Generation Button */}
-                      {user.role !== 'odc_mentor' && (
-                        <button
-                          onClick={(e) => handleGenerateAIPDF(cat._id, cat.title, e)}
-                          disabled={generatingPDF === cat._id}
-                          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2.5 rounded-lg hover:from-orange-600 hover:to-orange-700 font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <FileText size={16} />
-                          {generatingPDF === cat._id 
-                            ? 'Génération en cours...' 
-                            : 'Générer Plan de Formation (AI)'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             </>
           )}

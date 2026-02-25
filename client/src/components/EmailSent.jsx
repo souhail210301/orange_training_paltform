@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const EmailSent = () => {
   return (
@@ -11,12 +12,12 @@ const EmailSent = () => {
               <img src="/orange_logo.png" alt="Orange Logo" className="h-8 w-auto" />
               <img src="/certif_logo.png" alt="Certif Logo" className="h-8 w-auto" />
             </div>
-           <center><div className="mb-8">
+           <div className="mb-8 text-center">
               <h2 className="text-4xl font-bold text-gray-900 mb-3">E-mail envoyé !</h2>
               <p className="text-gray-600">Veuillez consulter votre boîte de réception pour accéder au lien de réinitialisation de mot de passe. Pensez à regarder dans votre dossier spam.</p>
-            </div></center>
+            </div>
             <div className="text-center mt-8">
-              <a href="/" className="text-orange-500 text-sm hover:text-orange-600 underline">Retour à Connexion</a>
+              <Link to="/login" className="text-orange-500 text-sm hover:text-orange-600 underline">Retour à Connexion</Link>
             </div>
           </div>
         </div>
