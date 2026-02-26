@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: odc-certification-api
+    name: orange_training_paltform
     runtime: node
-    region: frankfurt
+    region: oregon
     branch: souhail
     rootDir: server
     buildCommand: npm install
@@ -14,14 +14,14 @@ services:
       - key: PORT
         value: 5000
       - key: MONGO_URI
-        sync: false
+        sync: mongodb+srv://odc_admin:GIdG3oKQgSJcbYMP@cluster0.yau6lbj.mongodb.net/?appName=Cluster0
       - key: JWT_SECRET
         sync: false
       - key: EMAIL_USERNAME
-        sync: false
+        sync: souhailabdennebi2@gmail.com
       - key: EMAIL_PASSWORD
-        sync: false
+        sync: djtohjsbhzrkfoto
       - key: CLIENT_URL
-        sync: false
+        sync: https://odccertif.vercel.app
       - key: OPENROUTER_API_KEY
-        sync: false
+        sync: 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
