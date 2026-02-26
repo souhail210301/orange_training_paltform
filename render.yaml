@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: odc-certification-api
+    runtime: node
+    region: frankfurt
+    branch: souhail
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: EMAIL_USERNAME
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
