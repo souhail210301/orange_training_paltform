@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 export default function RequestSessionModal({ onCancel, onConfirm }) {
   const [catalogues, setCatalogues] = useState([]);
@@ -17,7 +18,7 @@ export default function RequestSessionModal({ onCancel, onConfirm }) {
   useEffect(() => {
     const fetchCatalogues = async () => {
       try {
-        const res = await fetch('/api/catalogues');
+        const res = await apiFetch('/catalogues');
         const data = await res.json();
         if (res.ok) setCatalogues(data || []);
       } catch (error) {

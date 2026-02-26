@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import PhoneInput from './common/PhoneInput';
 import AdminNavbar from './AdminDashboard/AdminNavbar';
@@ -71,8 +72,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	const loadNotifications = async () => {
 		try {
 			setNotifLoading(true);
-			const token = localStorage.getItem('token');
-			const res = await fetch('/api/notifications', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+			const res = await apiFetch('/notifications');
 			if (res.ok) {
 				const data = await res.json();
 				setNotifications(data);
@@ -82,8 +82,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 	const markRead = async (id) => {
 		setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
 		try {
-			const token = localStorage.getItem('token');
-			await fetch(`/api/notifications/${id}/read`, { method: 'PATCH', headers: { Authorization: token ? `Bearer ${token}` : '' } });
+			await apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
 		} catch { /* silent */ }
 	};
 	useEffect(() => { if (activeTab === 'notifications') loadNotifications(); }, [activeTab]);
@@ -114,8 +113,7 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 		} else {
 			(async () => {
 				try {
-					const token = localStorage.getItem('token');
-						const res = await fetch('/api/users/me', { headers: { 'Authorization': token ? `Bearer ${token}` : '' } });
+			const res = await apiFetch('/users/me');
 						if (res.ok) {
 							const data = await res.json();
 							setForm({ name: data.name || '', phone_number: data.phone_number || '', email: data.email || '' });
@@ -130,13 +128,11 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 		setSuccess('');
 		setLoading(true);
 		try {
-			const token = localStorage.getItem('token');
-			const res = await fetch('/api/users/me', { method: 'GET', headers: { 'Authorization': token ? `Bearer ${token}` : '' } });
+			const res = await apiFetch('/users/me');
 			if (!res.ok) throw new Error('Impossible de récupérer votre identifiant');
 			const me = await res.json();
-			const updateRes = await fetch(`/api/users/${me._id}`, {
+			const updateRes = await apiFetch(`/users/${me._id}`, {
 				method: 'PUT',
-				headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
 				body: JSON.stringify({ name: form.name, phone_number: form.phone_number })
 			});
 			const data = await updateRes.json();
@@ -210,11 +206,9 @@ const UserProfile = ({ user, onLogout, onNavigate, activePage }) => {
 					const v = validatePassword();
 					if (v) { setPwError(v); return; }
 					setPwLoading(true);
-					try {
-						const token = localStorage.getItem('token');
-						const res = await fetch('/api/users/change-password', {
-							method: 'PUT',
-							headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+			try {
+					const res = await apiFetch('/users/change-password', {
+						method: 'PUT',
 							body: JSON.stringify({ currentPassword: oldPassword, newPassword })
 						});
 						const data = await res.json();

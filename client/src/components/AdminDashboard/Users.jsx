@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 // Public assets referenced directly — no imports needed for /public folder
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
+import { apiFetch } from '../../utils/api';
 
 const roleLabels = {
   admin: 'Administrateur',
@@ -57,12 +58,7 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
     if (showModal || showEditModal) {
       const fetchUniversities = async () => {
         try {
-          const token = localStorage.getItem('token');
-          const res = await fetch('/api/universities', {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : ''
-            }
-          });
+          const res = await apiFetch('/universities');
           const data = await res.json();
           if (res.ok && Array.isArray(data)) {
             setUniversities(data);
@@ -81,10 +77,7 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/users', {
-        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-      });
+      const res = await apiFetch('/users');
       const data = await res.json();
       if (res.ok) {
         setUsers(data);
@@ -188,13 +181,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                       }
                       setFormLoading(true);
                       try {
-                        const token = localStorage.getItem('token');
-                        const res = await fetch('/api/users/register', {
+                        const res = await apiFetch('/users/register', {
                           method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': token ? `Bearer ${token}` : ''
-                          },
                           body: JSON.stringify({
                             ...form,
                             password: 'changeme123', // Default password, should be changed after first login
@@ -386,13 +374,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                 }
                 setEditFormLoading(true);
                 try {
-                  const token = localStorage.getItem('token');
-                  const res = await fetch(`/api/users/${editForm._id}`, {
+                  const res = await apiFetch(`/users/${editForm._id}`, {
                     method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': token ? `Bearer ${token}` : ''
-                    },
                     body: JSON.stringify({
                       name: editForm.name,
                       email: editForm.email,
@@ -542,12 +525,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                   setDeleteLoading(true);
                   setDeleteError('');
                   try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(`/api/users/${userToDelete._id}`, {
-                      method: 'DELETE',
-                      headers: {
-                        'Authorization': token ? `Bearer ${token}` : ''
-                      }
+                    const res = await apiFetch(`/users/${userToDelete._id}`, {
+                      method: 'DELETE'
                     });
                     if (res.ok) {
                       setUsers(prev => prev.filter(u => u._id !== userToDelete._id));
@@ -607,13 +586,8 @@ const Users = ({ user, onLogout, onNavigate, activePage }) => {
                   setDisableLoadingId(userToDisable._id);
                   setDisableError('');
                   try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(`/api/users/${userToDisable._id}/disable`, {
+                    const res = await apiFetch(`/users/${userToDisable._id}/disable`, {
                       method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                      },
                       body: JSON.stringify({ disabled: !userToDisable.disabled })
                     });
                     if (res.ok) {

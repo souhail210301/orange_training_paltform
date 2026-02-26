@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart2, TrendingUp, Users, GraduationCap } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
+import { apiFetch } from '../../utils/api';
 
 const Statistics = ({ user, onLogout, onNavigate, activePage }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,10 +46,7 @@ const Statistics = ({ user, onLogout, onNavigate, activePage }) => {
 
   const fetchFilterOptions = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/statistics/filters', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch('/statistics/filters');
       if (res.ok) {
         const data = await res.json();
         setFilterOptions(data);
@@ -61,17 +59,13 @@ const Statistics = ({ user, onLogout, onNavigate, activePage }) => {
   const fetchStatistics = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
       // Build query params from filters
       const params = new URLSearchParams();
       if (filters.formateur) params.append('formateur', filters.formateur);
       if (filters.universite) params.append('universite', filters.universite);
       if (filters.session) params.append('session', filters.session);
 
-      const res = await fetch(`/api/statistics?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/statistics?${params.toString()}`);
 
       if (!res.ok) {
         throw new Error('Failed to fetch statistics');

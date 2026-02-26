@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import LoadingLottie from './LoadingLottie';
+import { apiFetch } from '../utils/api';
 
 const LoginPage = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -17,9 +18,9 @@ const LoginPage = ({ onLoginSuccess }) => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/users/login', {
+      const res = await apiFetch('/users/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: '' },
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();

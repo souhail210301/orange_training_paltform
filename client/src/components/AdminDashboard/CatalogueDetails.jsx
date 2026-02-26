@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../utils/api';
 
 const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit, role, currentUserId }) => {
   const [catalogue, setCatalogue] = useState(null);
@@ -20,7 +21,7 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit, rol
   useEffect(() => {
     if (!catalogueId) return;
     setLoading(true);
-    fetch(`/api/catalogues/${catalogueId}`)
+    apiFetch(`/catalogues/${catalogueId}`)
       .then(res => res.json())
       .then(data => {
         setCatalogue(data);
@@ -126,7 +127,7 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit, rol
                   setDeleteLoading(true);
                   setDeleteError('');
                   try {
-                    const res = await fetch(`/api/catalogues/${catalogueId}`, { method: 'DELETE' });
+                    const res = await apiFetch(`/catalogues/${catalogueId}`, { method: 'DELETE' });
                     if (!res.ok) {
                       const data = await res.json();
                       throw new Error(data.message || 'Erreur lors de la suppression');
@@ -290,13 +291,8 @@ const CatalogueDetails = ({ catalogueId, onBack, mentors, onDeleted, onEdit, rol
                   if (altDateEnabled && altDate) payload.alternative_date = altDate;
                   try {
                     setRequestSubmitting(true);
-                    const token = localStorage.getItem('token');
-                    const res = await fetch('/api/training-requests', {
+                    const res = await apiFetch('/training-requests', {
                       method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: token ? `Bearer ${token}` : undefined
-                      },
                       body: JSON.stringify(payload)
                     });
                     if (!res.ok) {

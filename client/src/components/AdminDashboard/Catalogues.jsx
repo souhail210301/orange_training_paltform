@@ -5,6 +5,7 @@ import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
 import { ChevronDown, Plus } from 'lucide-react';
 import CatalogueDetails from './CatalogueDetails';
+import { apiFetch } from '../../utils/api';
 
 const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur' }, onLogout, onNavigate, activePage = 'catalogue' }) => {
   // List of odc_mentor users
@@ -15,7 +16,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
 
   // Always fetch mentors on mount so trainer names are available for the catalogue list
   useEffect(() => {
-    fetch('/api/users/role/odc_mentor')
+    apiFetch('/users/role/odc_mentor')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setMentors(data);
@@ -25,7 +26,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
   // Also fetch mentors when opening add or edit page to ensure select is up to date
   useEffect(() => {
     if (showAddPage || editCatalogue) {
-      fetch('/api/users/role/odc_mentor')
+      apiFetch('/users/role/odc_mentor')
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) setMentors(data);
@@ -68,7 +69,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
   const fetchCatalogues = async () => {
     setLoadingCatalogues(true);
     try {
-      const res = await fetch('/api/catalogues');
+      const res = await apiFetch('/catalogues');
       const data = await res.json();
       setCatalogues(Array.isArray(data) ? data : []);
     } catch {
@@ -93,13 +94,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
     setGeneratingPDF(catalogueId);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/ai/catalogue/${catalogueId}/plan-pdf`, {
-        method: 'GET',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
-      });
+      const response = await apiFetch(`/ai/catalogue/${catalogueId}/plan-pdf`);
 
       if (!response.ok) {
         // Try to get error details from response
@@ -201,17 +196,14 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
                     const data = { ...form };
                     data.technologies = data.technologies.filter(Boolean);
                     let res, result;
-          const token = localStorage.getItem('token');
           if (editCatalogue) {
-                      res = await fetch(`/api/catalogues/${editCatalogue._id}`, {
+                      res = await apiFetch(`/catalogues/${editCatalogue._id}`, {
                         method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
                         body: JSON.stringify(data)
                       });
                     } else {
-                      res = await fetch('/api/catalogues', {
+                      res = await apiFetch('/catalogues', {
                         method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
                         body: JSON.stringify(data)
                       });
                     }
@@ -501,7 +493,7 @@ const Catalogues = ({ user = { name: 'Foulen El Fouleni', role: 'Administrateur'
               onDeleted={async () => {
                 setSelectedCatalogueId(null);
                 setLoadingCatalogues(true);
-                const refreshed = await fetch('/api/catalogues');
+                const refreshed = await apiFetch('/catalogues');
                 const refreshedData = await refreshed.json();
                 setCatalogues(Array.isArray(refreshedData) ? refreshedData : []);
                 setLoadingCatalogues(false);

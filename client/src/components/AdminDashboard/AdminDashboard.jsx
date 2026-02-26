@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
 import { Users, List, Calendar, ChevronRight, Pencil } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, activePage }) => {
   const [userStats, setUserStats] = useState({
@@ -30,7 +31,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
-        const res = await fetch('/api/users/stats');
+        const res = await apiFetch('/users/stats');
         const data = await res.json();
         if (res.ok) {
           setUserStats({
@@ -56,7 +57,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     const fetchCategories = async () => {
       setLoadingCategories(true);
       try {
-        const res = await fetch('/api/categories');
+        const res = await apiFetch('/categories');
         const data = await res.json();
         if (res.ok) {
           setCategoryStats({
@@ -78,7 +79,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
   // Fetch mentors for trainer names on catalogue cards
   const [mentors, setMentors] = useState([]);
   useEffect(() => {
-    fetch('/api/users/role/odc_mentor')
+    apiFetch('/users/role/odc_mentor')
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setMentors(d); })
       .catch(() => {});
@@ -89,8 +90,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     const fetchCatalogues = async () => {
       setLoadingCatalogues(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/catalogues', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+        const res = await apiFetch('/catalogues');
         let data = null;
         try { data = await res.json(); } catch { data = null; }
         if (res.ok) {
@@ -124,8 +124,7 @@ const AdminDashboard = ({ user = { name: 'Utilisateur' }, onLogout, onNavigate, 
     const fetchSessions = async () => {
       setLoadingSessions(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/sessions', { headers: { Authorization: token ? `Bearer ${token}` : '' } });
+        const res = await apiFetch('/sessions');
         let data = null;
         try { data = await res.json(); } catch { data = null; }
         if (res.ok) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../utils/api';
 import AdminNavbar from './AdminDashboard/AdminNavbar';
 import AdminSidebar from './AdminDashboard/AdminSidebar';
 import AddSessionModal from './AdminDashboard/AddSessionModal';
@@ -88,9 +89,9 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		setLoading(true);
 		try {
 			const [sr, fr, cr] = await Promise.all([
-				fetch('/api/sessions'),
-				fetch('/api/formations'),
-				fetch('/api/catalogues')
+				apiFetch('/sessions'),
+				apiFetch('/formations'),
+				apiFetch('/catalogues')
 			]);
 			const [sd, fd, cd] = await Promise.all([sr.json(), fr.json(), cr.json()]);
 			if (sr.ok && fr.ok && cr.ok) {
@@ -119,13 +120,13 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 				if(selected.formation && typeof selected.formation === 'object') return; // already detailed
 				let detail = null;
 				if (selected.formation && typeof selected.formation === 'string') {
-					const r = await fetch(`/api/formations/${selected.formation}`);
+					const r = await apiFetch(`/formations/${selected.formation}`);
 					if(r.ok) detail = await r.json();
 				} else if (selected.catalogue && typeof selected.catalogue === 'string') {
-					const r = await fetch(`/api/catalogues/${selected.catalogue}`);
+					const r = await apiFetch(`/catalogues/${selected.catalogue}`);
 					if(r.ok) detail = await r.json();
 				} else if (selected.catalogue && selected.catalogue._id && !selected.catalogue.program) {
-					const r = await fetch(`/api/catalogues/${selected.catalogue._id}`);
+					const r = await apiFetch(`/catalogues/${selected.catalogue._id}`);
 					if(r.ok) detail = await r.json();
 				}
 				if(detail){
@@ -155,13 +156,12 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 
 	const updateStatus = async (id,status) => {
 		if(id.startsWith('catalogue-')) return; // cannot update status of placeholder without real session id
-		const token = localStorage.getItem('token');
 		// capture previous status before optimistic update
 		const prevStatus = sessions.find(x=>x._id===id)?.status;
 		const prev = sessions; setSessions(s=>s.map(x=>x._id===id?{...x,status, rejection_reason: status==='REJECTED'? rejectionReasonDraft: x.rejection_reason }:x));
 		const body = { status };
 		if(status==='REJECTED' && rejectionReasonDraft.trim()) body.rejection_reason = rejectionReasonDraft.trim();
-		const res = await fetch(`/api/sessions/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json',Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify(body) });
+		const res = await apiFetch(`/sessions/${id}/status`, { method:'PATCH', body: JSON.stringify(body) });
 		if(res.ok){
 			const upd = await res.json();
 			setSessions(s=> s.map(x=> x._id===id? { ...x, ...upd }: x));
@@ -222,9 +222,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		if (!sessionToAdd) return;
 
 		try {
-			const token = localStorage.getItem('token');
 			const body = {
-				catalogue: sessionToAdd.catalogue,
+			catalogue: sessionToAdd.catalogue,
 				proposed_dates: [
 					{
 						from: sessionToAdd.dateFrom,
@@ -233,14 +232,10 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 				]
 			};
 
-			const res = await fetch('/api/sessions', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: token ? `Bearer ${token}` : ''
-				},
-				body: JSON.stringify(body)
-			});
+			const res = await apiFetch('/sessions', {
+			method: 'POST',
+			body: JSON.stringify(body)
+		});
 
 			if (res.ok) {
 				const created = await res.json();
@@ -275,20 +270,15 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		if (!sessionToReject) return;
 
 		try {
-			const token = localStorage.getItem('token');
 			const body = {
-				status: 'REJECTED',
+			status: 'REJECTED',
 				rejection_reason: rejectionReason
 			};
 
-			const res = await fetch(`/api/sessions/${sessionToReject._id}/status`, {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: token ? `Bearer ${token}` : ''
-				},
-				body: JSON.stringify(body)
-			});
+			const res = await apiFetch(`/sessions/${sessionToReject._id}/status`, {
+			method: 'PATCH',
+			body: JSON.stringify(body)
+		});
 
 			if (res.ok) {
 				const updated = await res.json();
@@ -321,20 +311,15 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		if (!sessionToRequest) return;
 
 		try {
-			const token = localStorage.getItem('token');
 			const body = {
-				catalogue: sessionToRequest.catalogue,
+			catalogue: sessionToRequest.catalogue,
 				proposed_dates: sessionToRequest.proposed_dates
 			};
 
-			const res = await fetch('/api/sessions', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: token ? `Bearer ${token}` : ''
-				},
-				body: JSON.stringify(body)
-			});
+			const res = await apiFetch('/sessions', {
+			method: 'POST',
+			body: JSON.stringify(body)
+		});
 
 			if (res.ok) {
 				const created = await res.json();
@@ -357,9 +342,8 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		if(!selected || !rangeDraft.start || !rangeDraft.end) return;
 		setScheduling(true);
 		try {
-			const token = localStorage.getItem('token');
 			const body = { start_date: rangeDraft.start.toISOString(), end_date: rangeDraft.end.toISOString() };
-			const res = await fetch(`/api/sessions/${selected._id}/schedule`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify(body) });
+			const res = await apiFetch(`/sessions/${selected._id}/schedule`, { method:'PATCH', body: JSON.stringify(body) });
 			if(res.ok){
 				const upd = await res.json();
 				setSessions(s=> s.map(x=> x._id===upd._id? { ...x, ...upd }: x));
@@ -389,7 +373,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		// Use already populated participants if any
 		if(selected.participants) setParticipants(selected.participants);
 		try {
-			const res = await fetch(`/api/sessions/${selected._id}`);
+			const res = await apiFetch(`/sessions/${selected._id}`);
 			if(res.ok){
 				const data = await res.json();
 				setParticipants(data.participants||[]);
@@ -416,8 +400,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		setAddingPartLoading(true);
 		setAddParticipantError(null);
 		try {
-			const token = localStorage.getItem('token');
-			const res = await fetch(`/api/sessions/${sessionId}/participants`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ participants:[newParticipant] }) });
+			const res = await apiFetch(`/sessions/${sessionId}/participants`, { method:'POST', body: JSON.stringify({ participants:[newParticipant] }) });
 			if(res.ok){
 				const data = await res.json();
 				// Support both shapes: { _id, participants:[...] } OR a single participant doc
@@ -470,10 +453,9 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 			return;
 		}
 		setEditParticipantError(null);
-		const token = localStorage.getItem('token');
 		const { _id, ...payload } = editParticipant;
 		try {
-			const res = await fetch(`/api/sessions/${sessionId}/participants/${_id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify(payload) });
+			const res = await apiFetch(`/sessions/${sessionId}/participants/${_id}`, { method:'PATCH', body: JSON.stringify(payload) });
 			if(res.ok){
 				const updatedDoc = await res.json();
 				setParticipants(list => list.map(p=> p._id===updatedDoc._id? updatedDoc: p));
@@ -495,8 +477,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	};
 	const confirmParticipantsList = async () => {
 		if(!selected) return;
-		const token = localStorage.getItem('token');
-		const res = await fetch(`/api/sessions/${selected._id}/participants/confirm`, { method:'POST', headers:{ Authorization: token?`Bearer ${token}`:'' } });
+		const res = await apiFetch(`/sessions/${selected._id}/participants/confirm`, { method:'POST' });
 		if(res.ok){
 			setSelected(sel=> sel? {...sel, participants_confirmed:true }: sel);
 			setShowConfirmModal(false);
@@ -508,11 +489,10 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 		// optimistic update
 		setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: nextPresence}:x));
 		try {
-			const res = await fetch(`/api/sessions/${selected._id}/participants/${p._id}/presence`, {
-				method:'PATCH',
-				headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' },
-				body: JSON.stringify({ presence: nextPresence })
-			});
+			const res = await apiFetch(`/sessions/${selected._id}/participants/${p._id}/presence`, {
+			method:'PATCH',
+			body: JSON.stringify({ presence: nextPresence })
+		});
 			if(!res.ok){
 				// revert on failure (e.g., 403 when not assigned mentor)
 				setParticipants(list => list.map(x=> x._id===p._id? {...x, presence: p.presence}:x));
@@ -564,8 +544,7 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 				return obj;
 			}).filter(p=> p.email);
 			if(participantsPayload.length===0){ throw new Error('Aucune ligne valide trouvée'); }
-			const token = localStorage.getItem('token');
-			const res = await fetch(`/api/sessions/${sessionId}/participants`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:'' }, body: JSON.stringify({ participants: participantsPayload }) });
+			const res = await apiFetch(`/sessions/${sessionId}/participants`, { method:'POST', body: JSON.stringify({ participants: participantsPayload }) });
 			if(!res.ok){
 				let msg = 'Échec de l\'import'; try{ const d = await res.json(); if(d.message) msg=d.message; }catch{}
 				throw new Error(msg);
@@ -582,11 +561,10 @@ const Sessions = ({ user, onLogout, onNavigate, activePage }) => {
 	const deleteParticipant = async (participant) => {
 		const sessionId = selected? selected._id : participantsSessionId;
 		if(!sessionId) return;
-		const token = localStorage.getItem('token');
 		// optimistic update
 		setParticipants(list => list.filter(p=> p._id!==participant._id));
 		setActionMenuFor(null);
-		await fetch(`/api/sessions/${sessionId}/participants/${participant._id}`, { method:'DELETE', headers:{ Authorization: token?`Bearer ${token}`:'' } });
+		await apiFetch(`/sessions/${sessionId}/participants/${participant._id}`, { method:'DELETE' });
 		if(selected && selected._id===sessionId){
 			setSelected(sel => sel ? { ...sel, participants: (sel.participants||[]).filter(p=> p._id!==participant._id) } : sel);
 		}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 export default function AddSessionModal({ onCancel, onConfirm }) {
   const [catalogues, setCatalogues] = useState([]);
@@ -16,8 +17,8 @@ export default function AddSessionModal({ onCancel, onConfirm }) {
     const fetchData = async () => {
       try {
         const [catRes, uniRes] = await Promise.all([
-          fetch('/api/catalogues'),
-          fetch('/api/universities')
+          apiFetch('/catalogues'),
+          apiFetch('/universities')
         ]);
         const [catData, uniData] = await Promise.all([
           catRes.json(),

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '../utils/api';
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -16,7 +17,7 @@ const ResetPasswordPage = () => {
   useEffect(() => {
     const fetchEmail = async () => {
       try {
-        const res = await fetch(`/api/users/reset-password-email/${token}`);
+        const res = await apiFetch(`/users/reset-password-email/${token}`, { headers: { Authorization: '' } });
         const data = await res.json();
         if (res.ok && data.email) {
           setEmail(data.email);
@@ -39,9 +40,9 @@ const ResetPasswordPage = () => {
       return;
     }
     try {
-      const res = await fetch(`/api/users/reset-password/${token}`, {
+      const res = await apiFetch(`/users/reset-password/${token}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: '' },
         body: JSON.stringify({ password }),
       });
       const data = await res.json();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/api';
 
 const ChatbotAssistant = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const ChatbotAssistant = () => {
 
   const loadGreeting = async () => {
     try {
-      const response = await fetch('/api/chatbot/greeting');
+      const response = await apiFetch('/chatbot/greeting', { headers: { Authorization: '' } });
       const data = await response.json();
       
       if (data.success) {
@@ -71,11 +72,9 @@ const ChatbotAssistant = () => {
         content: msg.content
       }));
 
-      const response = await fetch('/api/chatbot/chat', {
+      const response = await apiFetch('/chatbot/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { Authorization: '' },
         body: JSON.stringify({
           message: messageText,
           conversationHistory

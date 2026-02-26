@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import './App.css'
+import { apiFetch } from './utils/api';
 
 import LoginPage from './components/LoginPage'
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
@@ -63,7 +64,7 @@ function App() {
       setBootstrapping(true);
       (async () => {
         try {
-          const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await apiFetch('/users/me');
           if (res.ok) {
             const data = await res.json();
             setUser(data);

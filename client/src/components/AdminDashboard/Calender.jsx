@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AdminNavbar from './AdminNavbar';
 import AdminSidebar from './AdminSidebar';
+import { apiFetch } from '../../utils/api';
 
 // Colors based on status
 const STATUS_COLORS = {
@@ -171,7 +172,7 @@ const Calender = ({ user, onLogout, onNavigate, activePage }) => {
 		const load = async () => {
 			setLoading(true);
 			try {
-				const res = await fetch('/api/sessions');
+				const res = await apiFetch('/sessions');
 				const data = await res.json();
 				if(res.ok) setSessions(Array.isArray(data)? data: []);
 			} finally { setLoading(false); }

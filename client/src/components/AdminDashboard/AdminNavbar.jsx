@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { apiFetch } from '../../utils/api';
 
 const AdminNavbar = ({ onViewAllNotifications, onToggleSidebar }) => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const AdminNavbar = ({ onViewAllNotifications, onToggleSidebar }) => {
     if(diff<5) return "À l'instant"; if(diff<60) return `Il y a ${diff} s`; const m=Math.floor(diff/60); if(m<60) return `Il y a ${m} min`; const h=Math.floor(m/60); if(h<24) return `Il y a ${h} h`; const day=Math.floor(h/24); if(day<7) return `Il y a ${day} j`; const w=Math.floor(day/7); if(w<4) return `Il y a ${w} sem`; return new Date(d).toLocaleDateString();
   };
   const fetchNotifs = async () => {
-    try { setLoading(true); const token = localStorage.getItem('token'); const res = await fetch('/api/notifications',{ headers:{ Authorization: token?`Bearer ${token}`:'' }}); if(res.ok){ const data= await res.json(); setList(data.slice(0,10)); }} finally { setLoading(false);} };
+    try { setLoading(true); const res = await apiFetch('/notifications'); if(res.ok){ const data= await res.json(); setList(data.slice(0,10)); }} finally { setLoading(false);} };
   // Fetch full list when opening panel
   useEffect(()=>{ if(open) fetchNotifs(); },[open]);
   // Initial fetch to drive unread dot
@@ -94,7 +95,7 @@ const AdminNavbar = ({ onViewAllNotifications, onToggleSidebar }) => {
                   return (
                     <div key={n._id} className="flex flex-col gap-2 p-3 hover:bg-gray-50 text-sm cursor-pointer" onClick={async (e)=>{ // only mark read when clicking background, not buttons
                       if ((e.target.tagName === 'BUTTON')) return;
-                      if(!n.read){ const token=localStorage.getItem('token'); setList(prev=>prev.map(x=>x._id===n._id?{...x,read:true}:x)); fetch(`/api/notifications/${n._id}/read`,{method:'PATCH',headers:{Authorization:token?`Bearer ${token}`:''}});} }}>
+                      if(!n.read){ setList(prev=>prev.map(x=>x._id===n._id?{...x,read:true}:x)); apiFetch(`/notifications/${n._id}/read`,{method:'PATCH'});} }}>
                       <div className="flex gap-3">
                         <div className="flex-none w-12 h-12 bg-orange-500 rounded flex items-center justify-center">
                           <img src="/logo_orange_certif.png" alt="Logo" className="w-8 h-8" />
@@ -113,16 +114,14 @@ const AdminNavbar = ({ onViewAllNotifications, onToggleSidebar }) => {
                           <button
                             className="px-2 py-1 bg-orange-500 text-white text-xs rounded"
                             onClick={async ()=>{
-                              const token=localStorage.getItem('token');
-                              const res = await fetch(`/api/notifications/${n._id}/respond-invite`, { method:'POST', headers:{'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify({ decision:'ACCEPTED' }) });
+                              const res = await apiFetch(`/notifications/${n._id}/respond-invite`, { method:'POST', body: JSON.stringify({ decision:'ACCEPTED' }) });
                               if(res.ok){ setList(prev=>prev.map(x=>x._id===n._id?{...x, inviteStatus:'ACCEPTED', type:'MENTOR_INVITE_RESPONSE', title:'Invitation acceptée', body:'Vous avez accepté cette invitation.'}:x)); }
                             }}
                           >Accepter</button>
                           <button
                             className="px-2 py-1 bg-gray-200 text-gray-800 text-xs rounded"
                             onClick={async ()=>{
-                              const token=localStorage.getItem('token');
-                              const res = await fetch(`/api/notifications/${n._id}/respond-invite`, { method:'POST', headers:{'Content-Type':'application/json', Authorization: token?`Bearer ${token}`:''}, body: JSON.stringify({ decision:'DECLINED' }) });
+                              const res = await apiFetch(`/notifications/${n._id}/respond-invite`, { method:'POST', body: JSON.stringify({ decision:'DECLINED' }) });
                               if(res.ok){ setList(prev=>prev.map(x=>x._id===n._id?{...x, inviteStatus:'DECLINED', type:'MENTOR_INVITE_RESPONSE', title:'Invitation refusée', body:'Vous avez refusé cette invitation.'}:x)); }
                             }}
                           >Refuser</button>
